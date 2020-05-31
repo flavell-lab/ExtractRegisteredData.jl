@@ -2,3 +2,9 @@ name = "ExtractRegisteredData"
 uuid = "666c3283-de97-4a1c-ae8f-c95ebd78c995"
 authors = ["goldenratio1618 <adamatanas@gmail.com>"]
 version = "0.1.0"
+
+[deps]
+CaSegmentation = "12890cf6-bade-11e9-13a1-8d1a766a4f8d"
+FlavellBase = "88015601-1e04-46e4-b006-ffd03bd63f42"
+ImageDataIO = "3d2e8b00-a1b7-4eb6-bd24-c7e2252788fb"
+MHDIO = "7d797e2a-7db6-11e9-07d5-4fa370062df3"

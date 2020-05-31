@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-This package requires you to have previously installed the `FlavellBase.jl`, `ImageDataIO.jl`, and `MHDIO.jl` packages.
+This package requires you to have previously installed the `FlavellBase.jl`, `ImageDataIO.jl`, `MHDIO.jl`, `CaSegmentation.jl`, and `SegmentationTools.jl` packages.
 It also requires you to have [installed `transformix`](https://simpleelastix.readthedocs.io/GettingStarted.html#manually-building-on-linux).
 
 ## Running `transformix` on ROIs
