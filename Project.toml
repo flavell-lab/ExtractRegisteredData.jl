@@ -1,0 +1,4 @@
+name = "ExtractRegisteredData"
+uuid = "666c3283-de97-4a1c-ae8f-c95ebd78c995"
+authors = ["goldenratio1618 <adamatanas@gmail.com>"]
+version = "0.1.0"
