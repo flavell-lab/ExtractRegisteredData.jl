@@ -11,12 +11,9 @@ Note that this is the opposite of `run_transformix_roi`, because of the way `tra
 `transformix_dir::String`: Path to `transformix` executable
 """
 function run_transformix_centroids(path, output, centroids, parameters, transformix_dir)
-    curr_path = pwd()
-    cd(path)
-    cmd = Cmd([transformix_dir, "-out $output", "-def $centroids", "-tp $parameters"])
-    result = run(cmd |> "transformix.log")
-    cd(curr_path)
-    return result
+    cmd = Cmd(Cmd([transformix_dir, "-out $output", "-def $centroids", "-tp $parameters"]), dir=path)
+    result = read(cmd)
+    return (read_img(MHD(joinpath(output, "result.mhd"))), result)
 end
 
 """
