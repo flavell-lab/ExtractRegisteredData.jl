@@ -102,7 +102,7 @@ function run_transformix_roi_graph(rootpath::String, root_node_roi::String, out_
             substitutions = Dict()
             substitutions["ElementDataFile"] = "result.raw"
             modify_mhd(joinpath(rootpath, root_node_roi), joinpath(rootpath, out_dir, string(e[1]), "result.mhd"), substitutions)
-            cp(joinpath(rootpath, root_node_roi), joinpath(rootpath, out_dir, string(e[1]), "result.raw"), force=true)
+            cp(joinpath(rootpath, split(root_node_roi, ".mhd")[1]*".raw"), joinpath(rootpath, out_dir, string(e[1]), "result.raw"), force=true)
         end
         input = joinpath(rootpath, out_dir, string(e[1]), "result.mhd")
         run_transformix_roi(joinpath(rootpath, regdir, "$(e[1])to$(e[2])"), input,
