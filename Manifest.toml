@@ -129,7 +129,7 @@ version = "1.10.5+5"
 deps = ["HDF5", "MHDIO"]
 git-tree-sha1 = "0c5276ae91c0d7e15d5365b96a880d63a42e210b"
 repo-rev = "master"
-repo-url = "ImageDataIO.jl/"
+repo-url = "git@github.com:flavell-lab/ImageDataIO.jl.git"
 uuid = "3d2e8b00-a1b7-4eb6-bd24-c7e2252788fb"
 version = "0.1.0"
 

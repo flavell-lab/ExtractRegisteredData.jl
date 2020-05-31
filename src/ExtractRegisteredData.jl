@@ -1,6 +1,6 @@
 module ExtractRegisteredData
 
-using LightGraphs, SimpleWeightedGraphs, DataStructures, SegmentationTools, ProgressMeter
+using LightGraphs, SimpleWeightedGraphs, DataStructures, SegmentationTools, ProgressMeter, FlavellBase, ImageDataIO
 
 include("extract_traces.jl")
 include("run_transformix.jl")
