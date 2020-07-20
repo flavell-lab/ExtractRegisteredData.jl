@@ -4,11 +4,11 @@ Note that this is the opposite of `run_transformix_roi`, because of the way `tra
 
 # Arguments
 
-`path::String`: Path to directory containing elastix registration
-`output::String`: Output file directory
-`centroids`: Centroids to transform
-`parameters::String`: Transform parameter file
-`transformix_dir::String`: Path to `transformix` executable
+- `path::String`: Path to directory containing elastix registration
+- `output::String`: Output file directory
+- `centroids`: Centroids to transform
+- `parameters::String`: Transform parameter file
+- `transformix_dir::String`: Path to `transformix` executable
 """
 function run_transformix_centroids(path, output, centroids, parameters, transformix_dir)
     cmd = Cmd(Cmd([transformix_dir, "-out $output", "-def $centroids", "-tp $parameters"]), dir=path)
@@ -21,11 +21,12 @@ Runs transformix to map an image from the moving frame to the fixed frame.
 Returns the resulting transformed image.
 Note that this is the opposite of `run_transformix_centroids`, because of the way `transformix` is implemented.
 
-`path::String`: Path to directory containing elastix registration
-`output::String`: Output file directory
-`input::String`: Input file path
-`parameters::String`: Transform parameter file
-`transformix_dir::String`: Path to `transformix` executable
+# Arguments
+- `path::String`: Path to directory containing elastix registration
+- `output::String`: Output file directory
+- `input::String`: Input file path
+- `parameters::String`: Transform parameter file
+- `transformix_dir::String`: Path to `transformix` executable
 """
 function run_transformix_img(path::String, output::String, input::String, parameters::String, transformix_dir::String)
     create_dir(output)
@@ -41,12 +42,13 @@ Modifies various transform parameters to force nearest-neighbors interpolation.
 Returns the resulting transformed image.
 Note that this is the opposite of `run_transformix_centroids`, because of the way `transformix` is implemented.
 
-`path::String`: Path to directory containing elastix registration. Other paths should be absolute; they are NOT relative to this.
-`input::String`: Input file path
-`output::String`: Output file directory path
-`parameters::String`: Path to transform parameter file
-`parameters_roi::String`: Filename to save modified parameters.
-`transformix_dir::String`: Path to `transformix` executable
+# Arguments
+- `path::String`: Path to directory containing elastix registration. Other paths should be absolute; they are NOT relative to this.
+- `input::String`: Input file path
+- `output::String`: Output file directory path
+- `parameters::String`: Path to transform parameter file
+- `parameters_roi::String`: Filename to save modified parameters.
+- `transformix_dir::String`: Path to `transformix` executable
 """
 function run_transformix_roi(path::String, input::String, output::String, parameters::String, parameters_roi::String, transformix_dir::String)
     create_dir(output)
