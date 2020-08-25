@@ -308,7 +308,7 @@ Groups ROIs into neurons based on a matrix of overlaps.
 function find_neurons(regmap_matrix, label_map; overlap_threshold::Real=0.05, height_threshold::Real=0.99, linkage=:single)
     i_map = invert_label_map(label_map)
     dist = pairwise_dist(regmap_matrix)
-    clusters = hclust(d, linkage=linkage)
+    clusters = hclust(dist, linkage=linkage)
     c_to_roi = Dict()
     n_to_c = [-i for i=1:size(clusters.merges)[1]+1]
     for i in 1:size(clusters.merges)[1]+1
