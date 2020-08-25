@@ -238,6 +238,19 @@ function pairwise_dist(regmap_matrix; threshold=1e-8)
 end
 
 """
+Deletes excessively large neurons from an roi, such as those that might come from huge deformations in registration.
+"""
+function delete_smeared_neurons(roi; threshold=20000)
+    for i=1:maximum(roi)
+        if sum(roi .== i) > threshold
+            roi = collect(map(x->(x == i) ? 0 : x, roi))
+        end
+    end
+    return roi
+end
+
+
+"""
 Updates ROI label map `label_map` to include ROI matches `matches`, and returns updated version.
 """
 function update_label_map(label_map, matches)
