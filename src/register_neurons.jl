@@ -305,7 +305,7 @@ Groups ROIs into neurons based on a matrix of overlaps.
 - `new_label_map`: Dictionary of dictionaries mapping original ROIs to neuron labels, for each frame.
 - `inv_map`: Dictionary of dictionaries mapping frames to original ROIs, for each neuron label
 """
-function find_neurons(regmap_matrix, label_map; overlap_threshold::Real=0.05, height_threshold::Real=0.99, linkage=:single)
+function find_neurons(regmap_matrix, label_map; overlap_threshold::Real=0.05, height_threshold::Real=-0.01, linkage=:single)
     inv_map = invert_label_map(label_map)
     dist = pairwise_dist(regmap_matrix)
     clusters = hclust(dist, linkage=linkage)
