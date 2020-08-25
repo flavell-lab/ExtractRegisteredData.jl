@@ -1,7 +1,7 @@
 module ExtractRegisteredData
 
 using LightGraphs, SimpleWeightedGraphs, DataStructures, SegmentationTools, ProgressMeter,
-    Statistics, SparseArrays, LinearAlgebra, Arpack, Clustering, StatsBase,
+    Statistics, SparseArrays, LinearAlgebra, Arpack, Clustering, StatsBase, Plots,
     FlavellBase, MHDIO, ImageDataIO
 
 
