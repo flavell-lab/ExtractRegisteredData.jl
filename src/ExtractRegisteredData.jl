@@ -25,5 +25,6 @@ export
     pairwise_dist,
     update_label_map,
     invert_label_map,
-    find_neurons
+    find_neurons,
+    delete_smeared_neurons
 end # module
