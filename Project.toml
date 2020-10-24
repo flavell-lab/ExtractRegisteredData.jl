@@ -1,11 +1,10 @@
 name = "ExtractRegisteredData"
 uuid = "666c3283-de97-4a1c-ae8f-c95ebd78c995"
 authors = ["goldenratio1618 <adamatanas@gmail.com>"]
-version = "0.2.0"
+version = "0.2.1"
 
 [deps]
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
-CaSegmentation = "12890cf6-bade-11e9-13a1-8d1a766a4f8d"
 Clustering = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 FlavellBase = "88015601-1e04-46e4-b006-ffd03bd63f42"

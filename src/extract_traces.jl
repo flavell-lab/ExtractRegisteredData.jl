@@ -120,6 +120,14 @@ function view_heatmap(traces, threshold)
         end
         count += 1
     end
-    return heatmap(traces_arr)
+    dist = pairwise_dist(traces_arr)
+    cluster = hclust(dist, linkage=:single)
+    ordered_traces_arr = zeros(size(traces_arr))
+    for i=1:length(cluster.order)
+        for j=1:frame_max
+            ordered_traces_arr[i,j] = traces_arr[cluster.order[i],j]
+        end
+    end
+    return heatmap(ordered_traces_arr)
 end
 

@@ -218,8 +218,17 @@ end
 
 """
 Finds the distances between each pair of ROIs based on similarity between rows of the `regmap_matrix`.
+
+# Arguments
+
+- `regmap_matrix`: matrix of registration matches
+
+# Optional keyword arguments
+
+- `threshold`: if distance is below this value, set it to 0.
+- `dtype`: Data type of matrix. Default Float32; can possibly be set to Float16 if out of memory.
 """
-function pairwise_dist(regmap_matrix; threshold=1e-8)
+function pairwise_dist(regmap_matrix; threshold=1e-8, dtype=Float32)
     d = regmap_matrix * transpose(regmap_matrix)
     l = length(regmap_matrix[:,1])
     @showprogress for i=1:l
@@ -234,7 +243,7 @@ function pairwise_dist(regmap_matrix; threshold=1e-8)
     for i=1:l
         d[i,i] = -1
     end
-    return d
+    return map(x->Float32(x), d)
 end
 
 """
@@ -297,17 +306,18 @@ Groups ROIs into neurons based on a matrix of overlaps.
 # Optional keyword arguments
 
 - `overlap_threshold::Real`: Maximum fraction of ROIs that can overlap in the same frame. Default 0.05
-- `height_threshold::Real`: Maximum distance between ROIs from newly-added cluster. Default 0.99
+- `height_threshold::Real`: Maximum distance between ROIs from newly-added cluster. Default -0.01
 - `linkage`: Cluster linkage. Default `single` = merge clusters by closest points.
 
 # Returns
 
 - `new_label_map`: Dictionary of dictionaries mapping original ROIs to neuron labels, for each frame.
 - `inv_map`: Dictionary of dictionaries mapping frames to original ROIs, for each neuron label
+- `dtype::Type`: Data type of distance matrix. Default Float32; can try setting to Float16 if out of memory.
 """
-function find_neurons(regmap_matrix, label_map; overlap_threshold::Real=0.05, height_threshold::Real=-0.01, linkage=:single)
+function find_neurons(regmap_matrix, label_map; overlap_threshold::Real=0.05, height_threshold::Real=-0.01, linkage=:single, dtype::Type=Float32)
     inv_map = invert_label_map(label_map)
-    dist = pairwise_dist(regmap_matrix)
+    dist = pairwise_dist(regmap_matrix, dtype=dtype)
     clusters = hclust(dist, linkage=linkage)
     c_to_roi = Dict()
     n_to_c = [-i for i=1:size(clusters.merges)[1]+1]
