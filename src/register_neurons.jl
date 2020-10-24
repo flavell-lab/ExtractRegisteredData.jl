@@ -300,7 +300,7 @@ Groups ROIs into neurons based on a matrix of overlaps.
 
 # Arguments
 
-- `clusters`: Clustering of distances between ROIs
+- `regmap_matrix`: Matrix of distances between ROIs
 - `label_map`: Dictionary of dictionaries mapping original ROIs to new ROI labels, for each frame.
 
 # Optional keyword arguments
