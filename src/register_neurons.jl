@@ -231,7 +231,7 @@ Finds the distances between each pair of ROIs based on similarity between rows o
 function pairwise_dist(regmap_matrix; threshold=1e-8, dtype=Float32)
     d = regmap_matrix * transpose(regmap_matrix)
     l = length(regmap_matrix[:,1])
-    @showprogress for i=1:l
+    for i=1:l
         for j=i+1:l
             if j == i
                 continue
