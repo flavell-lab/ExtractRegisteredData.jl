@@ -305,45 +305,41 @@ Groups ROIs into neurons based on a matrix of overlaps.
 
 # Optional keyword arguments
 
-- `overlap_threshold::Real`: Maximum fraction of ROIs that can overlap in the same frame. Default 0.05
+- `overlap_threshold::Real`: Maximum fraction of ROIs that can overlap in the same frame. Default 0.005
 - `height_threshold::Real`: Maximum distance between ROIs from newly-added cluster. Default -0.01
-- `linkage`: Cluster linkage. Default `single` = merge clusters by closest points.
+- `dtype::Type`: Data type of distance matrix. Default Float32; can try setting to Float16 if out of memory.
 
 # Returns
 
 - `new_label_map`: Dictionary of dictionaries mapping original ROIs to neuron labels, for each frame.
 - `inv_map`: Dictionary of dictionaries mapping frames to original ROIs, for each neuron label
-- `dtype::Type`: Data type of distance matrix. Default Float32; can try setting to Float16 if out of memory.
+- `hmer`: Raw clusters of the dataset.
 """
-function find_neurons(regmap_matrix, label_map; overlap_threshold::Real=0.05, height_threshold::Real=-0.01, linkage=:single, dtype::Type=Float32)
+function find_neurons(regmap_matrix, label_map; overlap_threshold::Real=0.005, height_threshold::Real=-0.01, dtype::Type=Float32)
     inv_map = invert_label_map(label_map)
     dist = pairwise_dist(regmap_matrix, dtype=dtype)
-    clusters = hclust(dist, linkage=linkage)
+    hmer = hclust_minimum_threshold(dist, inv_map, overlap_threshold)
+    n = length(keys(inv_map))
     c_to_roi = Dict()
-    n_to_c = [-i for i=1:size(clusters.merges)[1]+1]
-    for i in 1:size(clusters.merges)[1]+1
+    n_to_c = [-i for i=1:n]
+    for i in 1:n
         c_to_roi[-i] = [i]
     end
-    
-    count = 0
-    for i = 1:size(clusters.merges)[1]
-        if clusters.heights[i] >= height_threshold
+
+    @showprogress for i = 1:length(hmer.heights)
+        if hmer.heights[i] >= height_threshold
             break
         end
-        merged = copy(c_to_roi[clusters.merges[i,1]])
-        append!(merged, c_to_roi[clusters.merges[i,2]])
+        merged = copy(c_to_roi[hmer.mleft[i]])
+        append!(merged, c_to_roi[hmer.mright[i]])
         c_to_roi[i] = merged
         merged_rois = sort(map(x->collect(keys(inv_map[x]))[1], merged))
-        duplicates = sum([merged_rois[i] == merged_rois[i+1] for i=1:length(merged_rois)-1])
-        if (duplicates / length(merged)) < overlap_threshold
-            for j in merged
-                n_to_c[j] = i
-                count += 1
-            end
+        for j in merged
+            n_to_c[j] = i
         end
     end
     new_label_map = update_label_map(label_map, n_to_c)
-    inv_map = invert_label_map(new_label_map)
-    return (new_label_map, inv_map)
+    new_inv_map = invert_label_map(new_label_map);
+    return (new_label_map, inv_map, hmer)
 end
 
