@@ -50,7 +50,13 @@ function extract_traces(inverted_map, gcamp_data_dir)
         for frame in keys(inverted_map[roi])
             if length(inverted_map[roi][frame]) == 1
                 activity = read_activity(joinpath(gcamp_data_dir, "$(frame).txt"))
-                traces[roi][frame] = activity[inverted_map[roi][frame][1]]
+                idx = inverted_map[roi][frame][1]
+                # Neuron out of FOV of green camera
+                if idx > length(activity)
+                    traces[roi][frame] = 0
+                else
+                    traces[roi][frame] = activity[idx]
+                end
             end
         end
     end
