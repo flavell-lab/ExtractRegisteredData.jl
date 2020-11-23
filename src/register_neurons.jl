@@ -340,6 +340,6 @@ function find_neurons(regmap_matrix, label_map; overlap_threshold::Real=0.005, h
     end
     new_label_map = update_label_map(label_map, n_to_c)
     new_inv_map = invert_label_map(new_label_map);
-    return (new_label_map, inv_map, hmer)
+    return (new_label_map, new_inv_map, hmer)
 end
 
