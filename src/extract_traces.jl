@@ -158,7 +158,7 @@ function extract_activity_am_reg(param_path::Dict, mhd_path::String, get_basenam
     errors = Dict()
     @showprogress for t in t_range
         try
-            mhd_str = joinpath(param_path["path_root_process"], mhd_path, get_basename(t, ch_activity))
+            mhd_str = joinpath(param_path["path_root_process"], mhd_path, get_basename(t, ch_activity)*".mhd")
             img = read_img(MHD(mhd_str))
             regpath = joinpath(param_path["path_dir_reg_activity_marker"], "$(t)to$(t)")
             create_dir(joinpath(param_path["path_dir_transformed_activity_marker"], "$(t)"))
@@ -241,7 +241,7 @@ Outputs neuron ROI candidates and a plot of their activity.
 function output_roi_candidates(traces::Dict, inv_map::Dict, param_path::Dict, param::Dict, get_basename::Function, channel::Integer, t_range)
     @showprogress for neuron in [x for x in keys(traces) if length(keys(traces[x])) >= param["num_detections_threshold"]]
         min_t = minimum(keys(inv_map[neuron]))
-        img = maxprj(Float64.(read_img(MHD(get_basename(min_t, channel)))), dims=3);
+        img = maxprj(Float64.(read_img(MHD(get_basename(min_t, channel)*".mhd"))), dims=3);
         
         centroids = read_centroids_roi(joinpath(param_path["path_dir_centroid"], "$(min_t).txt"))
         roi = centroids[inv_map[neuron][min_t][1]][1:2]
