@@ -259,7 +259,7 @@ function output_roi_candidates(traces::Dict, inv_map::Dict, param_path::Dict, pa
         centroids = read_centroids_roi(joinpath(param_path["path_dir_centroid"], "$(min_t).txt"))
         roi = centroids[inv_map[neuron][min_t][1]][1:2]
         
-        fig, axes = subplots(ncols=2, figsize=(12,6));
+        fig, axes = PyPlot.subplots(ncols=2, figsize=(12,6));
         sorted_times = sort(collect(keys(traces[neuron])));
 
         neuron_traces = [traces[neuron][t] for t in sorted_times]
