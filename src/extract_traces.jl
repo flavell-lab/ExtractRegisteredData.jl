@@ -169,7 +169,7 @@ function extract_activity_am_reg(param_path::Dict, mhd_path::String, get_basenam
             
             # get activity
             activity = get_activity(img_roi, img)
-            activity_file = joinpath(rootpath, param_path["path_dir_am_activity"], "$(t).txt") 
+            activity_file = joinpath(param_path["path_dir_am_activity"], "$(t).txt") 
             write_activity(activity, activity_file)
         catch e
             errors[t] = e
@@ -205,7 +205,7 @@ function extract_roi_overlap(param_path::Dict, param::Dict)
             tf_base = joinpath(param_path["path_dir_reg"], "$(dir)/TransformParameters.$(best[1]).R$(best[2])")
             img, result = run_transformix_roi(joinpath(param_path["path_dir_reg"], "$(dir)"), 
                 joinpath(param_path["path_dir_roi_watershed"], "$(moving).mhd"),  joinpath(param_path["path_dir_transformed"], "$(dir)"), 
-                joinpath(rootpath, "$(tf_base).txt"), joinpath(rootpath, "$(tf_base)_roi.txt"), param_path["path_transformix"])
+                "$(tf_base).txt", "$(tf_base)_roi.txt", param_path["path_transformix"])
             roi = read_img(MHD(joinpath(param_path["path_dir_roi_watershed"], "$(fixed).mhd")))
             roi_regmap = delete_smeared_neurons(img, param["smeared_neuron_threshold"])
 
