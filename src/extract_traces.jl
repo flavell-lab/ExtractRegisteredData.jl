@@ -8,22 +8,30 @@ Extracts traces from neuron labels.
 """
 function extract_traces(inverted_map, gcamp_data_dir)
     traces = Dict()
+    errors = Dict()
     for roi in keys(inverted_map)
         traces[roi] = Dict()
         for t in keys(inverted_map[roi])
-            if length(inverted_map[roi][t]) == 1
-                activity = read_activity(joinpath(gcamp_data_dir, "$(t).txt"))
-                idx = inverted_map[roi][t][1]
-                # Neuron out of FOV of green camera
-                if idx > length(activity)
-                    traces[roi][t] = 0
-                else
-                    traces[roi][t] = activity[idx]
+            try
+                if length(inverted_map[roi][t]) == 1
+                    activity = read_activity(joinpath(gcamp_data_dir, "$(t).txt"))
+                    idx = inverted_map[roi][t][1]
+                    # Neuron out of FOV of green camera
+                    if idx > length(activity)
+                        traces[roi][t] = 0
+                    else
+                        traces[roi][t] = activity[idx]
+                    end
                 end
+            catch e
+                errors[(roi, t)] = e
             end
         end
     end
-    return traces
+    if length(keys(errors)) > 0
+        @warn "Unable to extract traces in all time points"
+    end
+    return (traces, errors)
 end
 
 """
@@ -203,7 +211,6 @@ function extract_roi_overlap(param_path::Dict, param::Dict)
                 continue
             end
             best = best_reg[(moving, fixed)]
-            tf_dir = 
             tf_base = joinpath(param_path["path_dir_reg"], "$(dir)/TransformParameters.$(best[1]).R$(best[2])")
             img, result = run_transformix_roi(joinpath(param_path["path_dir_reg"], "$(dir)"), 
                 joinpath(param_path["path_dir_roi_watershed"], "$(moving).mhd"),  joinpath(param_path["path_dir_transformed"], "$(dir)"), 
