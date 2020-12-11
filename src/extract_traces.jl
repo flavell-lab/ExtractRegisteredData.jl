@@ -199,7 +199,7 @@ Extracts ROI overlaps and activity differences.
  - `param_path::Dict`: Dictionary of paths to relevant files.
  - `param::Dict`: Dictionary of parameter values.
 """
-function extract_roi_overlap(param_path::Dict, param::Dict)
+function extract_roi_overlap(best_reg, param_path::Dict, param::Dict)
     roi_overlaps = Dict()
     roi_activity_diff = Dict()
     errors = Dict()
@@ -231,11 +231,12 @@ function extract_roi_overlap(param_path::Dict, param::Dict)
         end
     end
 
-    if length(keys(errors) > 0)
+    if length(keys(errors)) > 0
         @warn "Registration issues at some time points"
     end
     return roi_overlaps, roi_activity_diff, errors
 end
+
 
 
 """
@@ -253,7 +254,7 @@ Outputs neuron ROI candidates and a plot of their activity.
 function output_roi_candidates(traces::Dict, inv_map::Dict, param_path::Dict, param::Dict, get_basename::Function, channel::Integer, t_range)
     @showprogress for neuron in [x for x in keys(traces) if length(keys(traces[x])) >= param["num_detections_threshold"]]
         min_t = minimum(keys(inv_map[neuron]))
-        img = maxprj(Float64.(read_img(MHD(get_basename(min_t, channel)*".mhd"))), dims=3);
+        img = maxprj(Float64.(read_img(MHD(joinpath(param_path["path_dir_mhd_filt"], get_basename(min_t, channel)*".mhd")))), dims=3);
         
         centroids = read_centroids_roi(joinpath(param_path["path_dir_centroid"], "$(min_t).txt"))
         roi = centroids[inv_map[neuron][min_t][1]][1:2]
