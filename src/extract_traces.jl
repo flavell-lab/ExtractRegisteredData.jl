@@ -165,7 +165,7 @@ function extract_activity_am_reg(param_path::Dict, mhd_path::String, get_basenam
             run_transformix_roi(param_path["path_dir_reg_activity_marker"], joinpath(param_path["path_dir_roi_watershed"], "$(t).mhd"),
                 joinpath(param_path["path_dir_transformed_activity_marker"], "$(t)"), joinpath(regpath, param_path["name_transform_activity_marker"]),
                 joinpath(regpath, param_path["name_transform_activity_marker_roi"]), param_path["path_transformix"])
-            img_roi = read_img(MHD(joinpath(param["path_dir_transformed_activity_marker"], "$(t)", "result.mhd")))
+            img_roi = read_img(MHD(joinpath(param_path["path_dir_transformed_activity_marker"], "$(t)", "result.mhd")))
             
             # get activity
             activity = get_activity(img_roi, img)
