@@ -112,28 +112,28 @@ Also outputs a heatmap of the array, and the labels of which neurons correspond 
  - `valid_rois` (optional): If set, use this set of neurons (in order) in the array.
  - `normalized::Bool` (optional): If set to true, normalize each neuron's trace (by dividing by its median).
  - `contrast::Real` (optional): If set, increases the contrast of the heatmap. Does not change the output array.
- - `replace_blank::Bool` (optional): If set, replaces all blank entries in the traces (where the neuron was not found in that frame)
+ - `replace_blank::Bool` (optional): If set, replaces all blank entries in the traces (where the neuron was not found in that time point)
         with the median activity for that neuron.
 """
 function make_traces_array(traces::Dict; threshold::Real=1, valid_rois=nothing, normalized::Bool=false, contrast::Real=1, replace_blank::Bool=false)
     if valid_rois == nothing
         valid_rois = [roi for roi in keys(traces) if length(keys(traces[roi])) >= threshold]
     end
-    frame_max = maximum([maximum(keys(traces[roi])) for roi in valid_rois])
-    traces_arr = zeros((length(valid_rois), frame_max))
+    t_max = maximum([maximum(keys(traces[roi])) for roi in valid_rois])
+    traces_arr = zeros((length(valid_rois), t_max))
     count = 1
     for roi in valid_rois
         med = median([x for x in values(traces[roi]) if x == x])
-        for frame = 1:frame_max
-            if frame in keys(traces[roi])
-                traces_arr[count,frame] = traces[roi][frame]
+        for t = 1:t_max
+            if t in keys(traces[roi])
+                traces_arr[count,t] = traces[roi][t]
                 if normalized
-                    traces_arr[count,frame] = traces_arr[count,frame] ./ med
+                    traces_arr[count,t] = traces_arr[count,t] ./ med
                 end
             elseif replace_blank
-                traces_arr[count,frame] = 1 + !normalized * (med - 1)
+                traces_arr[count,t] = 1 + !normalized * (med - 1)
             else
-                traces_arr[count,frame] = 0
+                traces_arr[count,t] = 0
             end
         end
         count += 1
@@ -151,7 +151,7 @@ Extracts activity marker activity from camera-alignment registration. Returns an
  - `param_path::Dict`: Dictionary of paths to relevant files.
  - `mhd_path::String`: Directory of MHD files to extract activity from.
  - `get_basename::Function`: Function that returns basename of mhd file given time point and channel
- - `t_range`: Range of time points to extract over. Make sure to exclude frames where the registration failed.
+ - `t_range`: Range of time points to extract over. Make sure to exclude ts where the registration failed.
  - `ch_activity`: Channel that corresponds to the activity marker.
 """
 function extract_activity_am_reg(param_path::Dict, mhd_path::String, get_basename::Function, t_range, ch_activity)

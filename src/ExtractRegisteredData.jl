@@ -24,5 +24,7 @@ export
     find_neurons,
     delete_smeared_neurons,
     extract_activity_am_reg,
-    extract_roi_overlap
+    extract_roi_overlap,
+    output_roi_candidates,
+    make_traces_array
 end # module
