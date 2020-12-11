@@ -100,6 +100,49 @@ function view_heatmap(traces, threshold)
     return heatmap(ordered_traces_arr)
 end
 
+"""
+Turns a traces dictionary into a traces array.
+Also outputs a heatmap of the array, and the labels of which neurons correspond to which rows.
+
+# Arguments
+
+ - `traces::Dict`: Dictionary of traces.
+ - `threshold::Real` (optional): Minimum number of time points necessary to include a neuron in the traces array.
+        Default 1 (all ROIs displayed). It is recommended to set either this or the `valid_rois` parameter.
+ - `valid_rois` (optional): If set, use this set of neurons (in order) in the array.
+ - `normalized::Bool` (optional): If set to true, normalize each neuron's trace (by dividing by its median).
+ - `contrast::Real` (optional): If set, increases the contrast of the heatmap. Does not change the output array.
+ - `replace_blank::Bool` (optional): If set, replaces all blank entries in the traces (where the neuron was not found in that frame)
+        with the median activity for that neuron.
+"""
+function make_traces_array(traces::Dict; threshold::Real=1, valid_rois=nothing, normalized::Bool=false, contrast::Real=1, replace_blank::Bool=false)
+    if valid_rois == nothing
+        valid_rois = [roi for roi in keys(traces) if length(keys(traces[roi])) >= threshold]
+    end
+    frame_max = maximum([maximum(keys(traces[roi])) for roi in valid_rois])
+    traces_arr = zeros((length(valid_rois), frame_max))
+    count = 1
+    for roi in valid_rois
+        med = median([x for x in values(traces[roi]) if x == x])
+        for frame = 1:frame_max
+            if frame in keys(traces[roi])
+                traces_arr[count,frame] = traces[roi][frame]
+                if normalized
+                    traces_arr[count,frame] = traces_arr[count,frame] ./ med
+                end
+            elseif replace_blank
+                traces_arr[count,frame] = 1 + !normalized * (med - 1)
+            else
+                traces_arr[count,frame] = 0
+            end
+        end
+        count += 1
+    end
+    max_val = maximum(traces_arr)
+    new_traces_arr = map(x->min(x,max_val/contrast), traces_arr)
+    return (traces_arr, heatmap(new_traces_arr), valid_rois)
+end
+
 
 """
 Extracts activity marker activity from camera-alignment registration. Returns any errors encountered.
