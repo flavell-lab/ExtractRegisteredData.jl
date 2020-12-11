@@ -24,7 +24,10 @@ function extract_traces(inverted_map, gcamp_data_dir)
                     end
                 end
             catch e
-                errors[(roi, t)] = e
+                if !(roi in keys(errors))
+                    errors[roi] = Dict()
+                end
+                errors[roi][t] = e
             end
         end
     end
