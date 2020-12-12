@@ -266,6 +266,7 @@ Groups ROIs into neurons based on a matrix of overlaps.
 - `overlap_threshold::Real`: Maximum fraction of ROIs that can overlap in the same time point. Default 0.005
 - `height_threshold::Real`: Maximum distance between ROIs from newly-added cluster. Default -0.01
 - `dtype::Type`: Data type of distance matrix. Default Float32; can try setting to Float16 if out of memory.
+- `pair_match::Bool`: Whether to only match pairs of frames (eg: in registering multiple datasets together)
 
 # Returns
 
@@ -273,10 +274,10 @@ Groups ROIs into neurons based on a matrix of overlaps.
 - `inv_map`: Dictionary of dictionaries mapping time points to original ROIs, for each neuron label
 - `hmer`: Raw clusters of the dataset.
 """
-function find_neurons(regmap_matrix, label_map; overlap_threshold::Real=0.005, height_threshold::Real=-0.01, dtype::Type=Float64)
+function find_neurons(regmap_matrix, label_map; overlap_threshold::Real=0.005, height_threshold::Real=-0.01, dtype::Type=Float64, pair_match::Bool=false)
     inv_map = invert_label_map(label_map)
     dist = pairwise_dist(regmap_matrix, dtype=dtype)
-    hmer = hclust_minimum_threshold(dist, inv_map, overlap_threshold)
+    hmer = hclust_minimum_threshold(dist, inv_map, overlap_threshold, pair_match=pair_match)
     n = length(keys(inv_map))
     c_to_roi = Dict()
     n_to_c = [-i for i=1:n]
