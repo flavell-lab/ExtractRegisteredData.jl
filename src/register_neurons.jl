@@ -149,6 +149,9 @@ function make_regmap_matrix(roi_overlaps::Dict, roi_activity_diff::Dict, q_dict:
         label_weight[roi1] = get(label_weight, roi1, 0) + regmap_matrix[3][i]
     end
     m = mean(values(label_weight))
+    if m == 0
+        error("No successful registrations!")
+    end
     for i in 1:length(regmap_matrix[1])
         roi1 = regmap_matrix[1][i]
         regmap_matrix[3][i] *= (1 - self_weight) / m
