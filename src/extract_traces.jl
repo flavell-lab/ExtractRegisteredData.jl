@@ -204,7 +204,7 @@ function extract_roi_overlap(best_reg, param_path::Dict, param::Dict)
     roi_activity_diff = Dict()
     errors = Dict()
 
-    problems = load_registration_problems(param_path["path_root_process"], [param_path["path_reg_prob"]])
+    problems = load_registration_problems([param_path["path_reg_prob"]])
 
     @showprogress for (moving, fixed) in problems
         try
