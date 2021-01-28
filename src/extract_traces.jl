@@ -180,7 +180,7 @@ function extract_activity_am_reg(param_path::Dict, mhd_path::String, get_basenam
             
             # get activity
             activity = get_activity(img_roi, img)
-            activity_file = joinpath(param_path["path_dir_am_activity"], "$(t).txt") 
+            activity_file = joinpath(param_path["path_dir_activity_signal"], "$(t).txt") 
             write_activity(activity, activity_file)
         catch e
             errors[t] = e
@@ -222,8 +222,8 @@ function extract_roi_overlap(best_reg, param_path::Dict, param::Dict)
             roi_regmap = delete_smeared_neurons(img, param["smeared_neuron_threshold"])
 
             roi_overlap, roi_activity = register_neurons_overlap(roi_regmap, roi, 
-                read_activity(joinpath(param_path["path_dir_activity"], "$(moving).txt")), 
-                read_activity(joinpath(param_path["path_dir_activity"], "$(fixed).txt")))
+                read_activity(joinpath(param_path["path_dir_marker_signal"], "$(moving).txt")), 
+                read_activity(joinpath(param_path["path_dir_marker_signal"], "$(fixed).txt")))
             roi_overlaps[(moving, fixed)] = roi_overlap
             roi_activity_diff[(moving, fixed)] = roi_activity
         catch e
