@@ -269,5 +269,6 @@ function output_roi_candidates(traces::Dict, inv_map::Dict, param_path::Dict, pa
         axes[2].set_ylim(0, maximum(neuron_traces));
         axes[2].set_xlim(minimum(t_range), maximum(t_range));
         PyPlot.savefig(joinpath(param_path["path_roi_candidates"], string(neuron)*".png"));
+        PyPlot.close(fig)
      end
 end
