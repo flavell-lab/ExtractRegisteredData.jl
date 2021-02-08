@@ -199,8 +199,8 @@ Extracts ROI overlaps and activity differences.
  - `param_path::Dict`: Dictionary of paths to relevant files.
  - `param::Dict`: Dictionary of parameter values.
 """
-function extract_roi_overlap(best_reg, param_path::Dict, param::Dict; reg_dir_key::String="path_reg_prob",
-        transformed_dir_key::String="path_dir_transformed", reg_problems_key::String="path_dir_reg",
+function extract_roi_overlap(best_reg, param_path::Dict, param::Dict; reg_dir_key::String="path_dir_reg",
+        transformed_dir_key::String="path_dir_transformed", reg_problems_key::String="path_reg_prob",
         param_path_moving::Union{Dict,Nothing}=nothing)
     roi_overlaps = Dict()
     roi_activity_diff = Dict()
