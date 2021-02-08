@@ -316,3 +316,42 @@ function find_neurons(regmap_matrix, label_map, param)
         height_threshold=param["cluster_height_thresh"])
 end
 
+"""
+Matches neurons across multiple datasets.
+
+# Arguments
+- `label_map_1::Dict`: Label map of ROI/time points to neuron ID for dataset 1.
+- `label_map_2::Dict`: Label map of ROI/time points to neuron ID for dataset 2.
+- `inv_map-reg::Dict`: Map of neuron ID to ROI/time points for the registration between datasets.
+- `max_fixed_t::Int`: Maximum time point in the first dataset.
+"""
+function match_neurons_across_datasets(label_map_1::Dict, label_map_2::Dict, inv_map_reg::Dict, max_fixed_t::Int)
+    matches_12 = Dict()
+    matches_21 = Dict()
+    for neuron in keys(inv_map_reg)
+        # we have a match between a neuron in each frame
+        if length(keys(inv_map_reg[neuron])) == 2
+            t1, t2 = keys(inv_map_reg[neuron])
+            # don't register neurons 
+            if !xor(t1 > max_fixed_t, t2 > max_fixed_t)
+                continue
+            end
+            try
+                if t1 > max_fixed_t
+                    neuron1 = label_map_1[t2][inv_map_reg[neuron][t2][1]]
+                    neuron2 = label_map_2[t1][inv_map_reg[neuron][t1][1]]
+                end
+                if t2 > max_fixed_t
+                    neuron1 = label_map_1[t1][inv_map_reg[neuron][t1][1]]
+                    neuron2 = label_map_2[t2][inv_map_reg[neuron][t2][1]]
+                end
+                matches_12[neuron1] = neuron2
+                matches_21[neuron2] = neuron1
+            # if there's an error, the ROI was not detected in one of the individual datasets - ignore it.
+            catch e
+                continue
+            end
+        end
+    end
+    return (matches_12, matches_21)
+end
