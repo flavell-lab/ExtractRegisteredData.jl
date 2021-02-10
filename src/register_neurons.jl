@@ -74,36 +74,7 @@ function centroids_to_roi(img_roi)
     return centroids
 end
 
-"""
-Assimilates ROIs from all time points and generates a quality-of-match matrix.
 
-# Arguments
-
-- `roi_overlaps`: a dictionary of dictionaries of ROI matches for each pair of moving and fixed time points
-- `roi_activity_diff`: a dictionaon of dictionaries of the difference between normalized red ROI acivity, for each pair of moving and fixed time points
-- `q_dict`: a dictionary of dictionaries of dictionaries of the registration quality for each metric for each resolution for each pair of moving and fixed time points
-- `best_reg`: a dictionary of the registration that's being used, expressed as a tuple of resolutions, for each pair of moving and fixed time points
-
-# Optional keyword arguments
-
-- `activity_diff_threshold::Real`: parameter that controls how much red-channel activity differences are penalized in the matrix.
-Smaller values = greater penalty. Default 0.3.
-- `watershed_error_penalty::Real`: parameter that control how much watershed/UNet errors are penalized in the matrix.
-Smaller values = greater penalty. Default 0.5.
-- `metric`: metric to use in the `q_dict` parameter. Default `NCC`.
-- `self_weight::Real`: amount of weight in the matrix to assign each ROI to itself. Default 0.5.
-- `size_mismatch_penalty::Real`: penalty to apply to overlapping ROIs that don't fully overlap.
-    Larger values = greater penalty. Default 2.
-- `watershed_errors`: a dictionary of ROIs that might have had watershed or UNet errors for every time point.
-    This dictionary must be pre-shifted if moving and fixed datasets are not the same.
-- `max_fixed_t::Int`: If the moving and fixed datasets are not the same, this number is added to each moving dataset time point
-    to distinguish the datasets in the matrix and label map.
-
-# Returns
-
-- `regmap_matrix`, a matrix whose `(i,j)`th entry encodes the quality of the match between ROIs `i` and `j`.
-- `label_map`: a dictionary of dictionaries mapping original ROIs to new ROI labels, for each time point.
-"""
 function make_regmap_matrix(roi_overlaps::Dict, roi_activity_diff::Dict, q_dict::Dict, best_reg::Dict;
         activity_diff_threshold::Real=0.3, watershed_error_penalty::Real=0.5, metric = "NCC", self_weight=0.5,
         size_mismatch_penalty=2, watershed_errors::Union{Nothing,Dict}=nothing, max_fixed_t::Int=0)
@@ -170,6 +141,37 @@ function make_regmap_matrix(roi_overlaps::Dict, roi_activity_diff::Dict, q_dict:
     return (regmap_matrix, label_map)
 end
 
+
+"""
+Assimilates ROIs from all time points and generates a quality-of-match matrix.
+
+# Arguments
+
+- `roi_overlaps::Dict`: a dictionary of dictionaries of ROI matches for each pair of moving and fixed time points
+- `roi_activity_diff::Dict`: a dictionaon of dictionaries of the difference between normalized red ROI acivity, for each pair of moving and fixed time points
+- `q_dict::Dict`: a dictionary of dictionaries of dictionaries of the registration quality for each metric for each resolution for each pair of moving and fixed time points
+- `best_reg::Dict`: a dictionary of the registration that's being used, expressed as a tuple of resolutions, for each pair of moving and fixed time points
+- `param::Dict`: a dictionary of parameter settings to use, including:
+    * `activity_diff_threshold::Real`: parameter that controls how much red-channel activity differences are penalized in the matrix.
+Smaller values = greater penalty. Default 0.3.
+    * `watershed_error_penalty::Real`: parameter that control how much watershed/UNet errors are penalized in the matrix.
+Smaller values = greater penalty. Default 0.5.
+    * `quality_metric`: metric to use in the `q_dict` parameter. Default `NCC`.
+    * `matrix_self_weight::Real`: amount of weight in the matrix to assign each ROI to itself. Default 0.5.
+    * `size_mismatch_penalty::Real`: penalty to apply to overlapping ROIs that don't fully overlap.
+Larger values = greater penalty. Default 2.
+
+- `watershed_errors::Union{Nothing, Dict}`: a dictionary of ROIs that might have had watershed or UNet errors for every time point.
+This dictionary must be pre-shifted if moving and fixed datasets are not the same. Ignored if nothing.
+
+- `max_fixed_t::Int`: If the moving and fixed datasets are not the same, this number is added to each moving dataset time point
+    to distinguish the datasets in the matrix and label map.
+
+# Returns
+
+- `regmap_matrix`, a matrix whose `(i,j)`th entry encodes the quality of the match between ROIs `i` and `j`.
+- `label_map`: a dictionary of dictionaries mapping original ROIs to new ROI labels, for each time point.
+"""
 function make_regmap_matrix(roi_overlaps::Dict, roi_activity_diff::Dict, q_dict::Dict, best_reg::Dict, param::Dict; watershed_errors::Union{Nothing,Dict}=nothing, max_fixed_t::Int=0)
     return make_regmap_matrix(roi_overlaps, roi_activity_diff, q_dict, best_reg,
         activity_diff_threshold=param["activity_diff_threshold"],
@@ -261,27 +263,6 @@ end
 
 
 
-"""
-Groups ROIs into neurons based on a matrix of overlaps.
-
-# Arguments
-
-- `regmap_matrix`: Matrix of distances between ROIs
-- `label_map`: Dictionary of dictionaries mapping original ROIs to new ROI labels, for each time point.
-
-# Optional keyword arguments
-
-- `overlap_threshold::Real`: Maximum fraction of ROIs that can overlap in the same time point. Default 0.005
-- `height_threshold::Real`: Maximum distance between ROIs from newly-added cluster. Default -0.01
-- `dtype::Type`: Data type of distance matrix. Default Float32; can try setting to Float16 if out of memory.
-- `pair_match::Bool`: Whether to only match pairs of frames (eg: in registering multiple datasets together)
-
-# Returns
-
-- `new_label_map`: Dictionary of dictionaries mapping original ROIs to neuron labels, for each time point.
-- `inv_map`: Dictionary of dictionaries mapping time points to original ROIs, for each neuron label
-- `hmer`: Raw clusters of the dataset.
-"""
 function find_neurons(regmap_matrix, label_map; overlap_threshold::Real=0.005, height_threshold::Real=-0.01, dtype::Type=Float64, pair_match::Bool=false)
     inv_map = invert_label_map(label_map)
     dist = pairwise_dist(regmap_matrix, dtype=dtype)
@@ -310,7 +291,21 @@ function find_neurons(regmap_matrix, label_map; overlap_threshold::Real=0.005, h
     return (new_label_map, new_inv_map, hmer)
 end
 
-function find_neurons(regmap_matrix, label_map, param)
+"""
+Groups ROIs into neurons based on a matrix of overlaps.
+
+# Arguments:
+- `regmap_matrix`: Matrix of distances between the ROIs
+- `label_map::Dict`: Dictionary of dictionaries mapping original ROIs to new ROI labels, for each time point.
+- `param::Dict`: Dictionary containing `cluster_overlap_thresh` and `cluster_height_thresh` parameter settings to use for clustering. 
+
+# Returns
+
+- `new_label_map`: Dictionary of dictionaries mapping original ROIs to neuron labels, for each time point.
+- `inv_map`: Dictionary of dictionaries mapping time points to original ROIs, for each neuron label
+- `hmer`: Raw clusters of the dataset.
+"""
+function find_neurons(regmap_matrix, label_map::Dict, param::Dict)
     return find_neurons(regmap_matrix, label_map,
         overlap_threshold=param["cluster_overlap_thresh"],
         height_threshold=param["cluster_height_thresh"])

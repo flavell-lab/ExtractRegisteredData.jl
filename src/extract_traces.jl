@@ -196,10 +196,16 @@ end
 Extracts ROI overlaps and activity differences.
 
 # Arguments
+ - `best_reg::Dict`: Dictionary of best registration values.
  - `param_path::Dict`: Dictionary of paths to relevant files.
  - `param::Dict`: Dictionary of parameter values.
+ - `reg_dir_key::String` (optional): Key in `param_path` corresponding to the registration directory. Default `path_dir_reg`.
+ - `transformed_dir_key::String` (optional): Key in `param_path` corresponding to the transformed ROI save directory. Default `path_dir_transformed`.
+ - `reg_problems_key::String` (optional): Key in `param_path` corresponding to the registration problems file. Default `path_reg_prob`.
+ - `param_path_moving::Union{Dict, Nothing}`: If set, the `param_path` dictionary corresponding to the moving dataset. Otherwise, the method will assume
+the moving and fixed datasets have the same path dictionary.
 """
-function extract_roi_overlap(best_reg, param_path::Dict, param::Dict; reg_dir_key::String="path_dir_reg",
+function extract_roi_overlap(best_reg::Dict, param_path::Dict, param::Dict; reg_dir_key::String="path_dir_reg",
         transformed_dir_key::String="path_dir_transformed", reg_problems_key::String="path_reg_prob",
         param_path_moving::Union{Dict,Nothing}=nothing)
     roi_overlaps = Dict()
