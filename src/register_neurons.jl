@@ -317,36 +317,41 @@ Matches neurons across multiple datasets.
 # Arguments
 - `label_map_1::Dict`: Label map of ROI/time points to neuron ID for dataset 1.
 - `label_map_2::Dict`: Label map of ROI/time points to neuron ID for dataset 2.
-- `inv_map-reg::Dict`: Map of neuron ID to ROI/time points for the registration between datasets.
+- `inv_map-reg::Dict`: Map of neuron ID to ROI/time points for the registration between datasets. Time points in dataset 2 are shifted by `max_fixed_t`.
 - `max_fixed_t::Int`: Maximum time point in the first dataset.
 """
 function match_neurons_across_datasets(label_map_1::Dict, label_map_2::Dict, inv_map_reg::Dict, max_fixed_t::Int)
     matches_12 = Dict()
     matches_21 = Dict()
     for neuron in keys(inv_map_reg)
+        if length(keys(inv_map_reg[neuron])) < 2
+            continue
+        end
         # we have a match between a neuron in each frame
-        if length(keys(inv_map_reg[neuron])) == 2
-            t1, t2 = keys(inv_map_reg[neuron])
-            # don't register neurons 
-            if !xor(t1 > max_fixed_t, t2 > max_fixed_t)
-                continue
-            end
-            try
-                if t1 > max_fixed_t
-                    neuron1 = label_map_1[t2][inv_map_reg[neuron][t2][1]]
-                    neuron2 = label_map_2[t1][inv_map_reg[neuron][t1][1]]
-                end
-                if t2 > max_fixed_t
-                    neuron1 = label_map_1[t1][inv_map_reg[neuron][t1][1]]
-                    neuron2 = label_map_2[t2][inv_map_reg[neuron][t2][1]]
-                end
-                matches_12[neuron1] = neuron2
-                matches_21[neuron2] = neuron1
-            # if there's an error, the ROI was not detected in one of the individual datasets - ignore it.
-            catch e
-                continue
+        neuron1 = []
+        neuron2 = []
+        for t in keys(inv_map_reg[neuron])
+            if t <= max_fixed_t
+                append!(neuron1, label_map_1[t][inv_map_reg[neuron][t]])
+            else
+                append!(neuron2, label_map_2[t - max_fixed_t][inv_map_reg[neuron][t]])
             end
         end
-    end
+        for n1 in neuron1, n2 in neuron2
+            if !(n1 in keys(matches_12))
+                matches_12[n1] = Dict()
+            end
+            if !(n2 in keys(matches_12[n1]))
+                matches_12[n1][n2] = 0
+            end
+            matches_12[n1][n2] += 1
+            if !(n2 in keys(matches_21))
+                matches_21[n2] = Dict()
+            end
+            if !(n1 in keys(matches_21[n2]))
+                matches_21[n2][n1] = 0
+            end
+            matches_21[n2][n1] += 1
+        end
     return (matches_12, matches_21)
 end
