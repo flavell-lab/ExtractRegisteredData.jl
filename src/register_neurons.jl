@@ -332,9 +332,9 @@ function match_neurons_across_datasets(label_map_1::Dict, label_map_2::Dict, inv
         neuron2 = []
         for t in keys(inv_map_reg[neuron])
             if t <= max_fixed_t
-                append!(neuron1, label_map_1[t][inv_map_reg[neuron][t]])
+                append!(neuron1, label_map_1[t][inv_map_reg[neuron][t][1]])
             else
-                append!(neuron2, label_map_2[t - max_fixed_t][inv_map_reg[neuron][t]])
+                append!(neuron2, label_map_2[t - max_fixed_t][inv_map_reg[neuron][t][1]])
             end
         end
         for n1 in neuron1, n2 in neuron2
