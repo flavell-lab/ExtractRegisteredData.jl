@@ -353,5 +353,6 @@ function match_neurons_across_datasets(label_map_1::Dict, label_map_2::Dict, inv
             end
             matches_21[n2][n1] += 1
         end
+    end
     return (matches_12, matches_21)
 end
