@@ -81,14 +81,6 @@ git-tree-sha1 = "b9fb4b464ec10e860abe251b91d4d049934f7399"
 uuid = "70588ee8-6100-5070-97c1-3cb50ed05fe8"
 version = "0.1.1"
 
-[[CaSegmentation]]
-deps = ["ColorTypes", "Distributions", "HDF5", "PyCall", "PyPlot", "Statistics"]
-git-tree-sha1 = "53998f733012e8b70a3b53890cd5481105ac8620"
-repo-rev = "master"
-repo-url = "git@github.com:flavell-lab/CaSegmentation.jl.git"
-uuid = "12890cf6-bade-11e9-13a1-8d1a766a4f8d"
-version = "0.1.0"
-
 [[Calculus]]
 deps = ["LinearAlgebra"]
 git-tree-sha1 = "f641eb0a4f00c343bbc32346e1217b86f3ce9dad"
@@ -824,7 +816,7 @@ version = "1.0.1"
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 
 [[SegmentationTools]]
-deps = ["CaSegmentation", "DataStructures", "FileIO", "FlavellBase", "HDF5", "ImageDataIO", "Images", "Interact", "MHDIO", "NRRD", "Plots", "ProgressMeter"]
+deps = ["DataStructures", "FileIO", "FlavellBase", "HDF5", "ImageDataIO", "Images", "Interact", "MHDIO", "NRRD", "Plots", "ProgressMeter"]
 git-tree-sha1 = "566790f5567e67c93cd2396b95726000939ca8cc"
 repo-rev = "master"
 repo-url = "SegmentationTools.jl/"
