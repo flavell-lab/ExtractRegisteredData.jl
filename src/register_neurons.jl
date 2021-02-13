@@ -323,7 +323,7 @@ Matches neurons across multiple datasets.
 function match_neurons_across_datasets(label_map_1::Dict, label_map_2::Dict, inv_map_reg::Dict, max_fixed_t::Int)
     matches_12 = Dict()
     matches_21 = Dict()
-    for neuron in keys(inv_map_reg)
+    @showprogress for neuron in keys(inv_map_reg)
         if length(keys(inv_map_reg[neuron])) < 2
             continue
         end
