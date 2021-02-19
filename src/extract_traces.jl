@@ -164,8 +164,9 @@ Extracts activity marker activity from camera-alignment registration. Returns an
  - `get_basename::Function`: Function that returns basename of mhd file given time point and channel
  - `t_range`: Range of time points to extract over. Make sure to exclude ts where the registration failed.
  - `ch_activity`: Channel that corresponds to the activity marker.
+ - `roi_dir_key::String` (optional): Directory of neuron ROI files. Default `path_dir_roi_watershed_uncropped`.
 """
-function extract_activity_am_reg(param_path::Dict, mhd_path::String, get_basename::Function, t_range, ch_activity)
+function extract_activity_am_reg(param_path::Dict, mhd_path::String, get_basename::Function, t_range, ch_activity; roi_dir_key::String="path_dir_roi_watershed_uncropped")
     errors = Dict()
     @showprogress for t in t_range
         try
@@ -173,7 +174,7 @@ function extract_activity_am_reg(param_path::Dict, mhd_path::String, get_basenam
             img = read_img(MHD(mhd_str))
             regpath = joinpath(param_path["path_dir_reg_activity_marker"], "$(t)to$(t)")
             create_dir(joinpath(param_path["path_dir_transformed_activity_marker"], "$(t)"))
-            run_transformix_roi(param_path["path_dir_reg_activity_marker"], joinpath(param_path["path_dir_roi_watershed"], "$(t).mhd"),
+            run_transformix_roi(param_path["path_dir_reg_activity_marker"], joinpath(param_path[roi_dir_key], "$(t).mhd"),
                 joinpath(param_path["path_dir_transformed_activity_marker"], "$(t)"), joinpath(regpath, param_path["name_transform_activity_marker"]),
                 joinpath(regpath, param_path["name_transform_activity_marker_roi"]), param_path["path_transformix"])
             img_roi = read_img(MHD(joinpath(param_path["path_dir_transformed_activity_marker"], "$(t)", "result.mhd")))
