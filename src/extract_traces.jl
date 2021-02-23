@@ -168,7 +168,7 @@ Extracts activity marker activity from camera-alignment registration. Returns an
  - `transform_key::String` (optional): Key in `param_path` to file name of transform parameter files. Default `path_dir_transformed_activity_marker_avg`.
 """
 function extract_activity_am_reg(param_path::Dict, mhd_path::String, get_basename::Function, t_range, ch_activity;
-        roi_dir_key::String="path_dir_roi_watershed_uncropped", transform_key::String="name_transform_activity_marker_avg")
+        roi_dir_key::String="path_dir_roi_watershed_uncropped", transform_key::String="name_transform_activity_marker")
     errors = Dict()
     @showprogress for t in t_range
         try
