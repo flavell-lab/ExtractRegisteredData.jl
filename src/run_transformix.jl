@@ -27,10 +27,12 @@ Note that this is the opposite of `run_transformix_centroids`, because of the wa
 - `input::String`: Input file path
 - `parameters::String`: Transform parameter file
 - `transformix_dir::String`: Path to `transformix` executable
+- `interpolation_degree::Int` (optional): Interpolation degree. Default 1 (linear interpolation).
 """
-function run_transformix_img(path::String, output::String, input::String, parameters::String, transformix_dir::String)
+function run_transformix_img(path::String, output::String, input::String, parameters::String, parameters_roi::String, transformix_dir::String; interpolation_degree::Int=1)
     create_dir(output)
-    cmd = Cmd(Cmd([transformix_dir, "-out", output, "-in", input, "-tp", parameters]), dir=path)
+    modify_parameter_file(parameters, parameters_roi, Dict("FinalBSplineInterpolationOrder" => interpolation_degree))
+    cmd = Cmd(Cmd([transformix_dir, "-out", output, "-in", input, "-tp", parameters_roi]), dir=path)
     result = read(cmd)
     return (read_img(MHD(joinpath(output, "result.mhd"))), result)
 end
