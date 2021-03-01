@@ -160,34 +160,62 @@ Extracts activity marker activity from camera-alignment registration. Returns an
 
 # Arguments
  - `param_path::Dict`: Dictionary of paths to relevant files.
- - `mhd_path::String`: Directory of MHD files to extract activity from.
- - `get_basename::Function`: Function that returns basename of mhd file given time point and channel
- - `t_range`: Range of time points to extract over. Make sure to exclude ts where the registration failed.
- - `ch_activity`: Channel that corresponds to the activity marker.
- - `roi_dir_key::String` (optional): Key in `param_path` to directory of neuron ROI files. Default `path_dir_roi_watershed_uncropped`.
+ - `param::Dict`: Directory of imaging parameters.
+ - `shear_params_dict::Dict`: Dictionary of shear-correction parameters used in the marker channel.
+ - `crop_params_dict::Dict`: Dictionary of cropping parameters used in the marker channel.
+ - `mhd_path_key::String` (optional): Key in `param_path` to path to unprocessed activity-channel MHD files. Default `path_dir_mhd`
+ - `roi_dir_key::String` (optional): Key in `param_path` to directory of neuron ROI files. Default `path_dir_roi_watershed`.
  - `transform_key::String` (optional): Key in `param_path` to file name of transform parameter files. Default `path_dir_transformed_activity_marker_avg`.
 """
-function extract_activity_am_reg(param_path::Dict, mhd_path::String, get_basename::Function, t_range, ch_activity;
-        roi_dir_key::String="path_dir_roi_watershed_uncropped", transform_key::String="name_transform_activity_marker")
+function extract_activity_am_reg(param_path::Dict, param::Dict, shear_params_dict::Dict, crop_params_dict::Dict;
+        mhd_path_key::String="path_dir_mhd", roi_dir_key::String="path_dir_roi_watershed", transform_key::String="name_transform_activity_marker_avg")
     errors = Dict()
+    create_dir(param_path["path_dir_transformed_activity_marker"])
+    get_basename = param_path["get_basename"]
+    mhd_path = param_path[mhd_path_key]
+    ch_activity = param["ch_activity"]
+    t_range = param["t_range"]
+    println("Transforming activity channel data...")
     @showprogress for t in t_range
         try
             mhd_str = joinpath(param_path["path_root_process"], mhd_path, get_basename(t, ch_activity)*".mhd")
-            img = read_img(MHD(mhd_str))
             regpath = joinpath(param_path["path_dir_reg_activity_marker"], "$(t)to$(t)")
             create_dir(joinpath(param_path["path_dir_transformed_activity_marker"], "$(t)"))
-            run_transformix_roi(param_path["path_dir_reg_activity_marker"], joinpath(param_path[roi_dir_key], "$(t).mhd"),
-                joinpath(param_path["path_dir_transformed_activity_marker"], "$(t)"), joinpath(regpath, param_path[transform_key]),
+            run_transformix_img(param_path["path_dir_reg_activity_marker"], 
+                joinpath(param_path["path_dir_transformed_activity_marker"], "$(t)"), mhd_str,
+                joinpath(regpath, param_path[transform_key]), 
                 joinpath(regpath, param_path["name_transform_activity_marker_roi"]), param_path["path_transformix"])
-            img_roi = read_img(MHD(joinpath(param_path["path_dir_transformed_activity_marker"], "$(t)", "result.mhd")))
             
-            # get activity
-            activity = get_activity(img_roi, img)
-            activity_file = joinpath(param_path["path_dir_activity_signal"], "$(t).txt") 
-            write_activity(activity, activity_file)
+            path_mhd_transformed = joinpath(param_path["path_dir_transformed_activity_marker"], get_basename(t, ch_activity)*".mhd")
+            img_transformed = read_img(MHD(joinpath(param_path["path_dir_transformed_activity_marker"], "$(t)", "result.mhd")))
+            mv(joinpath(param_path["path_dir_transformed_activity_marker"], "$(t)", "result.raw"),
+                    joinpath(param_path["path_dir_transformed_activity_marker"], get_basename(t, ch_activity)*".raw"), force=true)
+            
+            write_MHD_spec(path_mhd_transformed, param["spacing_lat"], param["spacing_axi"], size(img_transformed)..., get_basename(t,ch_activity))
+
         catch e
             errors[t] = e
         end
+    end
+    param["t_range"] = [t for t in param["t_range"] if !(t in keys(errors))]
+    t_range = param["t_range"]
+    println("Shear-correcting activity channel data...")
+    shear_correction_mhd!(param_path, param, [ch_activity], shear_params_dict, mhd_key="path_dir_transformed_activity_marker")
+    println("Cropping activity channel data...")
+    crop_errors = crop_rotate!(param_path, param, t_range, [ch_activity], crop_params_dict)
+    for t in keys(crop_errors)
+        errors[t] = crop_errors[t]
+    end
+
+    println("Extracting activity...")
+    @showprogress for t in t_range
+        img = read_img(MHD(joinpath(param_path["path_dir_mhd_crop"], get_basename(t, ch_activity)*".mhd")))
+        img_roi = read_img(MHD(joinpath(param_path[roi_dir_key], "$(t).mhd")))
+
+        # get activity
+        activity = get_activity(img_roi, img)
+        activity_file = joinpath(param_path["path_dir_activity_signal"], "$(t).txt") 
+        write_activity(activity, activity_file)
     end
     if length(keys(errors)) > 0
         @warn "Unsuccessful camera alignment registration at some time points"
