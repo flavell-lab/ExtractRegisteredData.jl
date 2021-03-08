@@ -121,13 +121,13 @@ Also outputs a heatmap of the array, and the labels of which neurons correspond 
  - `threshold::Real` (optional): Minimum number of time points necessary to include a neuron in the traces array.
         Default 1 (all ROIs displayed). It is recommended to set either this or the `valid_rois` parameter.
  - `valid_rois` (optional): If set, use this set of neurons (in order) in the array.
- - `normalized::Bool` (optional): If set to true, normalize each neuron's trace (by dividing by its median).
  - `contrast::Real` (optional): If set, increases the contrast of the heatmap. Does not change the output array.
  - `replace_blank::Bool` (optional): If set, replaces all blank entries in the traces (where the neuron was not found in that time point)
         with the median activity for that neuron.
+ - `cluster::Bool` (optional): If set to `true`, cluster the neurons by activity similarity.
 """
-function make_traces_array(traces::Dict; threshold::Real=1, valid_rois=nothing, normalized::Bool=false, contrast::Real=1, replace_blank::Bool=false)
-    if valid_rois == nothing
+function make_traces_array(traces::Dict; threshold::Real=1, valid_rois=nothing, contrast::Real=1, replace_blank::Bool=false, cluster::Bool=false)
+    if isnothing(valid_rois)
         valid_rois = [roi for roi in keys(traces) if length(keys(traces[roi])) >= threshold]
     end
     t_max = maximum([maximum(keys(traces[roi])) for roi in valid_rois])
@@ -138,9 +138,6 @@ function make_traces_array(traces::Dict; threshold::Real=1, valid_rois=nothing, 
         for t = 1:t_max
             if t in keys(traces[roi])
                 traces_arr[count,t] = traces[roi][t]
-                if normalized
-                    traces_arr[count,t] = traces_arr[count,t] ./ med
-                end
             elseif replace_blank
                 traces_arr[count,t] = 1 + !normalized * (med - 1)
             else
@@ -149,6 +146,19 @@ function make_traces_array(traces::Dict; threshold::Real=1, valid_rois=nothing, 
         end
         count += 1
     end
+
+    if cluster
+        dist = pairwise_dist(traces_arr)
+        cluster = hclust(dist, linkage=:single)
+        ordered_traces_arr = zeros(size(traces_arr))
+        for i=1:length(cluster.order)
+            for j=1:t_max
+                ordered_traces_arr[i,j] = traces_arr[cluster.order[i],j]
+            end
+        end
+        traces_arr = ordered_traces_arr
+    end
+
     max_val = maximum(traces_arr)
     new_traces_arr = map(x->min(x,max_val/contrast), traces_arr)
     return (traces_arr, heatmap(new_traces_arr), valid_rois)
