@@ -139,7 +139,7 @@ function make_traces_array(traces::Dict; threshold::Real=1, valid_rois=nothing, 
             if t in keys(traces[roi])
                 traces_arr[count,t] = traces[roi][t]
             elseif replace_blank
-                traces_arr[count,t] = 1 + !normalized * (med - 1)
+                traces_arr[count,t] = med
             else
                 traces_arr[count,t] = 0
             end
