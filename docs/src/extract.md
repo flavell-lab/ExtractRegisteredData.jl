@@ -2,8 +2,8 @@
 
 ## Extract activity channel traces
 ```@docs
-extract_activity_am_reg,
-extract_traces,
+extract_activity_am_reg
+extract_traces
 make_traces_array
 ```
 
