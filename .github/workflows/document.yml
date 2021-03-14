@@ -1,0 +1,97 @@
+name: Documentation
+  
+on:
+  push:
+    branches:
+      - master
+      - develop
+    tags: '*'
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@latest
+        with:
+          version: '1.5.3'
+      - uses: actions/checkout@master
+        with:
+          repository: flavell-lab/FlavellBase.jl
+          path: ./FlavellBase.jl
+          token: ${{ secrets.GOLDENRATIO1618_ACCESS_TOKEN }}
+      - uses: actions/checkout@master
+        with:
+          repository: flavell-lab/GPUFilter.jl
+          path: ./GPUFilter.jl
+          token: ${{ secrets.GOLDENRATIO1618_ACCESS_TOKEN }}
+      - uses: actions/checkout@master
+        with:
+          repository: flavell-lab/MHDIO.jl
+          path: ./MHDIO.jl
+          token: ${{ secrets.GOLDENRATIO1618_ACCESS_TOKEN }}
+      - uses: actions/checkout@master
+        with:
+          repository: flavell-lab/FFTRegGPU.jl
+          path: ./FFTRegGPU.jl
+          token: ${{ secrets.GOLDENRATIO1618_ACCESS_TOKEN }}
+      - uses: actions/checkout@master
+        with:
+          repository: flavell-lab/ImageDataIO.jl
+          path: ./ImageDataIO.jl
+          token: ${{ secrets.GOLDENRATIO1618_ACCESS_TOKEN }}
+      - uses: actions/checkout@master
+        with:
+          repository: flavell-lab/WormCurveFinder.jl
+          path: ./WormCurveFinder.jl
+          token: ${{ secrets.GOLDENRATIO1618_ACCESS_TOKEN }}
+      - uses: actions/checkout@master
+        with:
+          repository: flavell-lab/Clustering.jl
+          path: ./Clustering.jl
+          token: ${{ secrets.GOLDENRATIO1618_ACCESS_TOKEN }}
+      - uses: actions/checkout@master
+        with:
+          repository: flavell-lab/WormFeatureDetector.jl
+          path: ./WormFeatureDetector.jl
+          token: ${{ secrets.GOLDENRATIO1618_ACCESS_TOKEN }}
+      - uses: actions/checkout@master
+        with:
+          repository: flavell-lab/SegmentationTools.jl
+          path: ./SegmentationTools.jl
+          token: ${{ secrets.GOLDENRATIO1618_ACCESS_TOKEN }}
+      - uses: actions/checkout@master
+        with:
+          repository: flavell-lab/SLURMManager.jl
+          path: ./SLURMManager.jl
+          token: ${{ secrets.GOLDENRATIO1618_ACCESS_TOKEN }}
+      - uses: actions/checkout@master
+        with:
+          repository: flavell-lab/RegistrationGraph.jl
+          path: ./RegistrationGraph.jl
+          token: ${{ secrets.GOLDENRATIO1618_ACCESS_TOKEN }}
+      - name: Install package
+        run: julia --project=docs/ -e 'using Pkg; 
+          Pkg.add("PyCall");
+          ENV["PYTHON"] = "";
+          Pkg.build("PyCall");
+          Pkg.add("PyPlot");
+          Pkg.build("PyPlot");
+          Pkg.develop(PackageSpec(path="./FlavellBase.jl"));
+          Pkg.develop(PackageSpec(path="./GPUFilter.jl"));
+          Pkg.develop(PackageSpec(path="./MHDIO.jl")); 
+          Pkg.develop(PackageSpec(path="./FFTRegGPU.jl")); 
+          Pkg.develop(PackageSpec(path="./ImageDataIO.jl")); 
+          Pkg.develop(PackageSpec(path="./WormCurveFinder.jl")); 
+          Pkg.develop(PackageSpec(path="./Clustering.jl")); 
+          Pkg.develop(PackageSpec(path="./WormFeatureDetector.jl")); 
+          Pkg.develop(PackageSpec(path="./SegmentationTools.jl")); 
+          Pkg.develop(PackageSpec(path="./SLURMManager.jl")); 
+          Pkg.develop(PackageSpec(path="./RegistrationGraph.jl")); 
+          Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+      - name: Build and deploy
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For authentication with GitHub Actions token
+          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }} # For authentication with SSH deploy key
+        run: julia --project=docs/ docs/make.jl

@@ -87,31 +87,6 @@ function error_rate(traces; factor::Real=1.5, gfp_thresh::Real=170, num_thresh::
 end
 
 """
-Views heatmap for all `traces` that contain at least `threshold` time points.
-"""
-function view_heatmap(traces, threshold)
-    valid_rois = [roi for roi in keys(traces) if length(keys(traces[roi])) >= threshold]
-    t_max = maximum([maximum(keys(traces[roi])) for roi in valid_rois])
-    traces_arr = zeros((length(valid_rois), t_max))
-    count = 1
-    for roi in valid_rois
-        for t in keys(traces[roi])
-            traces_arr[count,t] = traces[roi][t]
-        end
-        count += 1
-    end
-    dist = pairwise_dist(traces_arr)
-    cluster = hclust(dist, linkage=:single)
-    ordered_traces_arr = zeros(size(traces_arr))
-    for i=1:length(cluster.order)
-        for j=1:t_max
-            ordered_traces_arr[i,j] = traces_arr[cluster.order[i],j]
-        end
-    end
-    return heatmap(ordered_traces_arr)
-end
-
-"""
 Turns a traces dictionary into a traces array.
 Also outputs a heatmap of the array, and the labels of which neurons correspond to which rows.
 
