@@ -1,5 +1,9 @@
 # ExtractRegisteredData.jl
 
+This package matches neurons across time points using image registration, and then extracts activity channel (GCaMP) traces of the detected neurons.
+
+The API is available [here](https://flavell-lab.github.io/ExtractRegisteredData.jl/dev/).
+
 ## Prerequisites
 
 This package requires you to have previously installed the `FlavellBase.jl`, `ImageDataIO.jl`, `MHDIO.jl`, `CaSegmentation.jl`, `Clustering.jl`, and `SegmentationTools.jl` packages. Note that you must use the Flavell Lab fork of `Clustering.jl` rather than the original Julia package.
