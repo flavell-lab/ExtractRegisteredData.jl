@@ -15,7 +15,6 @@ export
     run_transformix_img,
     extract_traces,
     error_rate,
-    view_heatmap,
     register_neurons_overlap,
     make_regmap_matrix,
     pairwise_dist,
