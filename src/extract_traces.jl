@@ -134,11 +134,11 @@ function make_traces_array(traces::Dict; threshold::Real=1, valid_rois=nothing, 
             end
         end
         traces_arr = ordered_traces_arr
+        valid_rois = ordered_valid_rois
     end
 
     max_val = maximum(traces_arr)
     new_traces_arr = map(x->min(x,max_val/contrast), traces_arr)
-    valid_rois = ordered_valid_rois
     return (traces_arr, heatmap(new_traces_arr), valid_rois)
 end
 
