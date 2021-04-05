@@ -126,7 +126,9 @@ function make_traces_array(traces::Dict; threshold::Real=1, valid_rois=nothing, 
         dist = pairwise_dist(traces_arr)
         cluster = hclust(dist, linkage=:single)
         ordered_traces_arr = zeros(size(traces_arr))
+        ordered_valid_rois = []
         for i=1:length(cluster.order)
+            append!(ordered_valid_rois, valid_rois[cluster.order[i]])
             for j=1:t_max
                 ordered_traces_arr[i,j] = traces_arr[cluster.order[i],j]
             end
