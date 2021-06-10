@@ -237,7 +237,7 @@ function extract_roi_overlap(best_reg::Dict, param_path::Dict, param::Dict; reg_
 
     problems = load_registration_problems([param_path[reg_problems_key]])
 
-    @showprogress for (moving, fixed) in problems
+    Threads.@threads for (moving, fixed) in problems
         try
             dir = "$(moving)to$(fixed)"
             # Bspline registration failed
