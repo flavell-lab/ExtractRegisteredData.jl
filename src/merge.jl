@@ -19,6 +19,9 @@ function merge_confocal_data!(combined_data_dict::Dict, data_dict::Dict, data_di
         end
     end
 
+    combined_data_dict["stim_begin_nir"] = deepcopy(data_dict["stim_begin_nir"])
+    combined_data_dict["stim_begin_confocal"] = deepcopy(data_dict["stim_begin_confocal"])
+
         
     valid_rois_remapped = [isnan(x) ? nothing : data_dict["valid_rois"][x] for x in inverse_map]
     combined_data_dict["valid_rois"] = valid_rois_remapped
