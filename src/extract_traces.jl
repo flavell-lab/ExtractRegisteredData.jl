@@ -95,7 +95,8 @@ Also outputs a heatmap of the array, and the labels of which neurons correspond 
  - `traces::Dict`: Dictionary of traces.
  - `threshold::Real` (optional): Minimum number of time points necessary to include a neuron in the traces array.
         Default 1 (all ROIs displayed). It is recommended to set either this or the `valid_rois` parameter.
- - `valid_rois` (optional): If set, use this set of neurons (in order) in the array.
+ - `valid_rois` (optional): If set, use this set of neurons (in order) in the array. Set entries to `nothing` to insert gaps in the data
+        (eg: to preserve the previous labeling of neurons)
  - `contrast::Real` (optional): If set, increases the contrast of the heatmap. Does not change the output array.
  - `replace_blank::Bool` (optional): If set, replaces all blank entries in the traces (where the neuron was not found in that time point)
         with the median activity for that neuron.
@@ -105,10 +106,15 @@ function make_traces_array(traces::Dict; threshold::Real=1, valid_rois=nothing, 
     if isnothing(valid_rois)
         valid_rois = [roi for roi in keys(traces) if length(keys(traces[roi])) >= threshold]
     end
-    t_max = maximum([maximum(keys(traces[roi])) for roi in valid_rois])
+    t_max = maximum([isnothing(roi) ? 0 : maximum(keys(traces[roi])) for roi in valid_rois])
     traces_arr = zeros((length(valid_rois), t_max))
     count = 1
     for roi in valid_rois
+        if isnothing(roi)
+            traces_arr[count,:] .= NaN
+            count += 1
+            continue
+        end
         med = median([x for x in values(traces[roi]) if x == x])
         for t = 1:t_max
             if t in keys(traces[roi])
@@ -123,6 +129,7 @@ function make_traces_array(traces::Dict; threshold::Real=1, valid_rois=nothing, 
     end
 
     if cluster
+        @assert(!any(isnothing.(valid_rois)), "Cannot cluster null ROIs.")
         dist = pairwise_dist(traces_arr)
         cluster = hclust(dist, linkage=:single)
         ordered_traces_arr = zeros(size(traces_arr))
