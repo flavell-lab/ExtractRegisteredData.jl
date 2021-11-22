@@ -37,11 +37,13 @@ function merge_confocal_data!(combined_data_dict::Dict, data_dict::Dict, data_di
     combined_data_dict["valid_rois"] = valid_rois_remapped
     combined_data_dict["inv_map"] = data_dict["inv_map"]
 
+    combined_data_dict["num_neurons"] = size(combined_data_dict["zscored_traces_array"], 1)
+
 
     # there should not be any bad neurons unless neurons were manually remapped
     zscored_traces_nobadneurons = zeros(size(combined_data_dict["zscored_traces_array"]))
     count = 1
-    for n in 1:data_dict["num_neurons"]
+    for n in 1:combined_data_dict["num_neurons"]
         if isnan(combined_data_dict["zscored_traces_array"][n,1])
             continue
         end
