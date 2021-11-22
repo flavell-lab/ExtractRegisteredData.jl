@@ -52,5 +52,5 @@ function merge_confocal_data!(combined_data_dict::Dict, data_dict::Dict, data_di
 
     max_t_all = size(data_dict["zscored_traces_array"],2) + size(data_dict_2["zscored_traces_array"],2)
     combined_data_dict["max_t"] = max_t_all
-    combined_data_dict["max_t_1"] = param["max_t"];
+    combined_data_dict["max_t_1"] = data_dict["max_t"];
 end
