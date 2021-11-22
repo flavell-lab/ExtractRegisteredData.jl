@@ -20,17 +20,17 @@ function merge_confocal_data!(combined_data_dict::Dict, data_dict::Dict, data_di
     end
 
     combined_data_dict["timestamps"] = deepcopy(data_dict["timestamps"])
-    append!(combined_data_dict["timestamps"], other_dataset_data_dict[dataset]["timestamps"])
+    append!(combined_data_dict["timestamps"], data_dict_2["timestamps"])
     combined_data_dict["timestamps"] = combined_data_dict["timestamps"] .- combined_data_dict["timestamps"][1] 
     
     combined_data_dict["nir_timestamps"] = deepcopy(data_dict["nir_timestamps"])
-    append!(combined_data_dict["nir_timestamps"], other_dataset_data_dict[dataset]["nir_timestamps"])
+    append!(combined_data_dict["nir_timestamps"], data_dict_2["nir_timestamps"])
     combined_data_dict["nir_timestamps"] = combined_data_dict["nir_timestamps"] .- combined_data_dict["nir_timestamps"][1];
 
     combined_data_dict["stim_begin_nir"] = deepcopy(data_dict["stim_begin_nir"])
-    append!(combined_data_dict["stim_begin_nir"], other_dataset_data_dict[dataset]["stim_begin_nir"])
+    append!(combined_data_dict["stim_begin_nir"], data_dict_2["stim_begin_nir"])
     combined_data_dict["stim_begin_confocal"] = deepcopy(data_dict["stim_begin_confocal"])
-    append!(combined_data_dict["stim_begin_confocal"], other_dataset_data_dict[dataset]["stim_begin_confocal"])
+    append!(combined_data_dict["stim_begin_confocal"], data_dict_2["stim_begin_confocal"])
 
         
     valid_rois_remapped = [isnan(x) ? nothing : data_dict["valid_rois"][x] for x in inverse_map]
