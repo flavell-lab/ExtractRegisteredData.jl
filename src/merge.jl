@@ -1,4 +1,4 @@
-function merge_confocal_data!(combined_data_dict::Dict, data_dict::Dict, data_dict_2::Dict, dataset::String; manual_remap::Bool=false)
+function merge_confocal_data!(combined_data_dict::Dict, data_dict::Dict, data_dict_2::Dict, dataset::String)
     data_dict["roi_match_$dataset"] = zeros(Int32, length(data_dict["valid_rois"]))
     for i in 1:length(data_dict["valid_rois"])
         if isnothing(data_dict["valid_rois"][i])
@@ -53,19 +53,6 @@ function merge_confocal_data!(combined_data_dict::Dict, data_dict::Dict, data_di
     combined_data_dict["inv_map"] = data_dict["inv_map"]
 
     combined_data_dict["num_neurons"] = size(combined_data_dict["zscored_traces_array"], 1)
-
-
-    # there should not be any bad neurons unless neurons were manually remapped
-    zscored_traces_nobadneurons = zeros(size(combined_data_dict["zscored_traces_array"]))
-    count = 1
-    for n in 1:combined_data_dict["num_neurons"]
-        if isnan(combined_data_dict["zscored_traces_array"][n,1])
-            continue
-        end
-        zscored_traces_nobadneurons[count,:] .= combined_data_dict["zscored_traces_array"][n,:]
-        count += 1
-    end
-    combined_data_dict["M_z"], combined_data_dict["X_z"], combined_data_dict["Yt_z"] = multivar_fit(zscored_traces_nobadneurons[1:count-1,:], PCA, maxoutdim=20);
 
     max_t_all = size(data_dict["zscored_traces_array"],2) + size(data_dict_2["zscored_traces_array"],2)
     combined_data_dict["max_t"] = max_t_all
