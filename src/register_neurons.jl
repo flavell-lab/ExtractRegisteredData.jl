@@ -218,14 +218,18 @@ end
 Deletes neurons that might come from huge deformations in registration from an `roi` (neurons that have more pixels than `threshold`).
 """
 function delete_smeared_neurons(roi, threshold)
-    for i=1:maximum(roi)
-        if sum(roi .== i) > threshold
-            roi = collect(map(x->(x == i) ? 0 : x, roi))
+    roi_return = deepcopy(roi)
+    list_roi_id = sort(unique(roi))
+    list_roi_id = list_roi_id[2:end] # remove roi == 0
+    
+    for roi_id = list_roi_id
+        if sum(roi_return .== roi_id) > threshold
+            roi_return[roi_return .== roi_id] .= 0
         end
     end
-    return roi
+        
+    roi_return
 end
-
 
 """
 Updates ROI label map `label_map` to include ROI matches `matches`, and returns updated version.
