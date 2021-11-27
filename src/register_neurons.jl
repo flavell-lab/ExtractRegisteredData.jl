@@ -16,45 +16,56 @@ Matches ROIs from registered time points together based on the overlap heuristic
 - `activity_mismatch`: a dictionary of the differences between the normalized activity of the ROIs
     between the moving and fixed time points.
 """
-function register_neurons_overlap(inferred_roi, roi, inferred_activity, activity)
-    rs = size(roi)
-    is = size(inferred_roi)
-    # the ROI images might be of different sizes, crop out excess
-    ms = [min(rs[i], is[i]) for i=1:length(rs)]
-    roi = roi[1:ms[1], 1:ms[2], 1:ms[3]]
-    inferred_roi = inferred_roi[1:ms[1], 1:ms[2], 1:ms[3]]
+function register_neurons_overlap(roi_inferred, roi, activity_inferred, activity)
+    size_roi = size(roi)
+    size_roi_inf = size(roi_inferred)
+    
+    size_crop = [min(size_roi[i], size_roi_inf[i]) for i=1:length(size_roi)]
+    
+    roi = roi[1:size_crop[1], 1:size_crop[2], 1:size_crop[3]]
+    roi_inferred = roi_inferred[1:size_crop[1], 1:size_crop[2], 1:size_crop[3]]
+
     overlapping_rois = Dict()
     activity_mismatch = Dict()
-    
+
     # normalize activities
-    inferred_activity = inferred_activity ./ mean(inferred_activity)
+    activity_inferred = activity_inferred ./ mean(activity_inferred)
     activity = activity ./ mean(activity)
-    
-    max_inf_roi = maximum(inferred_roi)
+
+    max_roi_inf = maximum(roi_inferred)
     max_roi = maximum(roi)
-    
-    points_inf_roi = []
-    points_roi = []
-    for ir in 1:max_inf_roi
-        push!(points_inf_roi, get_points(inferred_roi, ir))
+
+    idx_nz_roi = findall(roi .!= 0)
+    idx_nz_roi_inferred = findall(roi_inferred .!= 0)
+
+    count_overlap = zeros(max_roi_inf, max_roi)
+
+    n_roi = zeros(max_roi)
+    n_roi_inferred = zeros(max_roi_inf)
+    for i = idx_nz_roi
+        roi_id = roi[i]
+        n_roi[roi_id] += 1
     end
-    
-    for r in 1:max_roi
-        push!(points_roi, get_points(roi, r))
-    end
-    
-    for ir in 1:max_inf_roi
-        for r in 1:max_roi
-            # look for ROI pairs that overlap significantly, possibly signifying a split in the matched ROI
-            l = length([x for x in points_roi[r] if x in points_inf_roi[ir]])
-            if l > 0
-                l_roi = length(points_roi[r])
-                l_inf = length(points_inf_roi[ir])
-                overlapping_rois[(ir, r)] = (l / l_inf, l / l_roi)
-                activity_mismatch[(ir, r)] = abs(activity[r] - inferred_activity[ir])
+
+    for i = idx_nz_roi_inferred
+        roi_inferred_id = roi_inferred[i]
+        if roi_inferred_id > 0
+            n_roi_inferred[roi_inferred_id] += 1
+            roi_id = roi[i]
+            if roi_id > 0
+                count_overlap[roi_inferred_id,roi_id] += 1
             end
         end
     end
+
+    for i = 1:max_roi_inf
+        nz = count_overlap[i,:]
+        for j = findall(nz .> 0)
+            overlapping_rois[(i,j)] = (nz[j] / n_roi_inferred[i], nz[j] / n_roi[j])
+            activity_mismatch[(i,j)] = abs(activity[j] - activity_inferred[i])
+        end
+    end
+    
     return (overlapping_rois, activity_mismatch)
 end
 
