@@ -245,31 +245,29 @@ function extract_roi_overlap(best_reg::Dict, param_path::Dict, param::Dict; reg_
         param_path_moving = param_path
     end
 
-    @sync begin
-        Threads.@threads for i in 1:length(problems)
-            (moving, fixed) = problems[i]
-            try
-                dir = "$(moving)to$(fixed)"
-                # Bspline registration failed
-                if best_reg[(moving, fixed)][1] == 0
-                    continue
-                end
-                best = best_reg[(moving, fixed)]
-                tf_base = joinpath(param_path[reg_dir_key], "$(dir)/TransformParameters.$(best[1]).R$(best[2])")
-                img, result = run_transformix_roi(joinpath(param_path[reg_dir_key], "$(dir)"), 
-                    joinpath(param_path_moving["path_dir_roi_watershed"], "$(moving).mhd"),  joinpath(param_path[transformed_dir_key], "$(dir)"), 
-                    "$(tf_base).txt", "$(tf_base)_roi.txt", param_path["path_transformix"])
-                roi = read_img(MHD(joinpath(param_path["path_dir_roi_watershed"], "$(fixed).mhd")))
-                roi_regmap = delete_smeared_neurons(img, param["smeared_neuron_threshold"])
-
-                roi_overlap, roi_activity = register_neurons_overlap(roi_regmap, roi, 
-                    read_activity(joinpath(param_path_moving["path_dir_marker_signal"], "$(moving).txt")), 
-                    read_activity(joinpath(param_path["path_dir_marker_signal"], "$(fixed).txt")))
-                roi_overlaps[i] = roi_overlap
-                roi_activity_diff[i] = roi_activity
-            catch e
-                errors[i] = e
+    @showprogress for i in 1:length(problems)
+        (moving, fixed) = problems[i]
+        try
+            dir = "$(moving)to$(fixed)"
+            # Bspline registration failed
+            if best_reg[(moving, fixed)][1] == 0
+                continue
             end
+            best = best_reg[(moving, fixed)]
+            tf_base = joinpath(param_path[reg_dir_key], "$(dir)/TransformParameters.$(best[1]).R$(best[2])")
+            img, result = run_transformix_roi(joinpath(param_path[reg_dir_key], "$(dir)"), 
+                joinpath(param_path_moving["path_dir_roi_watershed"], "$(moving).mhd"),  joinpath(param_path[transformed_dir_key], "$(dir)"), 
+                "$(tf_base).txt", "$(tf_base)_roi.txt", param_path["path_transformix"])
+            roi = read_img(MHD(joinpath(param_path["path_dir_roi_watershed"], "$(fixed).mhd")))
+            roi_regmap = delete_smeared_neurons(img, param["smeared_neuron_threshold"])
+
+            roi_overlap, roi_activity = register_neurons_overlap(roi_regmap, roi, 
+                read_activity(joinpath(param_path_moving["path_dir_marker_signal"], "$(moving).txt")), 
+                read_activity(joinpath(param_path["path_dir_marker_signal"], "$(fixed).txt")))
+            roi_overlaps[i] = roi_overlap
+            roi_activity_diff[i] = roi_activity
+        catch e
+            errors[i] = e
         end
     end
 
