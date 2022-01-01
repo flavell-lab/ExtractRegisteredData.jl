@@ -13,7 +13,7 @@ Note that this is the opposite of `run_transformix_roi`, because of the way `tra
 function run_transformix_centroids(path, output, centroids, parameters, transformix_dir)
     cmd = Cmd(Cmd([transformix_dir, "-out $output", "-def $centroids", "-tp $parameters"]), dir=path)
     result = read(cmd)
-    return (read_img(NRRD(joinpath(output, "result.nrrd"))), result)
+    return (read_img(MHD(joinpath(output, "result.mhd"))), result)
 end
 
 """
@@ -34,7 +34,7 @@ function run_transformix_img(path::String, output::String, input::String, parame
     modify_parameter_file(parameters, parameters_roi, Dict("FinalBSplineInterpolationOrder" => interpolation_degree))
     cmd = Cmd(Cmd([transformix_dir, "-out", output, "-in", input, "-tp", parameters_roi]), dir=path)
     result = read(cmd)
-    return (read_img(NRRD(joinpath(output, "result.nrrd"))), result)
+    return (read_img(MHD(joinpath(output, "result.mhd"))), result)
 end
 
 
@@ -57,6 +57,6 @@ function run_transformix_roi(path::String, input::String, output::String, parame
     modify_parameter_file(parameters, parameters_roi, Dict("FinalBSplineInterpolationOrder" => 0, "DefaultPixelvalue" => 0))
     cmd = Cmd(Cmd([transformix_dir, "-out", output, "-in", input, "-tp", parameters_roi]), dir=path)
     result = read(cmd)
-    return (read_img(NRRD(joinpath(output, "result.nrrd"))), result)
+    return (read_img(MHD(joinpath(output, "result.mhd"))), result)
 end
 
