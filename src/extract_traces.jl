@@ -190,7 +190,7 @@ function extract_activity_am_reg(param_path::Dict, param::Dict, shear_params_dic
     param["t_range"] = [t for t in param["t_range"] if !(t in keys(errors))]
     t_range = param["t_range"]
     println("Shear-correcting activity channel data...")
-    shear_correction_nrrd!(param_path, param, ch_activity, shear_params_dict, nrrd_key="path_dir_transformed_activity_marker")
+    shear_correction_nrrd!(param_path, param, ch_activity, shear_params_dict, nrrd_in_key="path_dir_transformed_activity_marker")
     println("Cropping activity channel data...")
     crop_errors = crop_rotate!(param_path, param, t_range, [ch_activity], crop_params_dict)
     for t in keys(crop_errors)
