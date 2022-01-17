@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@latest
         with:
-          version: '1.5.3'
+          version: '1.7.0'
       - uses: actions/checkout@master
         with:
           repository: flavell-lab/FlavellBase.jl
@@ -28,7 +28,7 @@ jobs:
           token: ${{ secrets.GOLDENRATIO1618_ACCESS_TOKEN }}
       - uses: actions/checkout@master
         with:
-          repository: flavell-lab/MHDIO.jl
+          repository: flavell-lab/NRRDIO.jl
           path: ./MHDIO.jl
           token: ${{ secrets.GOLDENRATIO1618_ACCESS_TOKEN }}
       - uses: actions/checkout@master
@@ -40,6 +40,11 @@ jobs:
         with:
           repository: flavell-lab/ImageDataIO.jl
           path: ./ImageDataIO.jl
+          token: ${{ secrets.GOLDENRATIO1618_ACCESS_TOKEN }}
+      - uses: actions/checkout@master
+        with:
+          repository: flavell-lab/UNet2D.jl
+          path: ./UNet2D.jl
           token: ${{ secrets.GOLDENRATIO1618_ACCESS_TOKEN }}
       - uses: actions/checkout@master
         with:
@@ -80,9 +85,10 @@ jobs:
           Pkg.build("PyPlot");
           Pkg.develop(PackageSpec(path="./FlavellBase.jl"));
           Pkg.develop(PackageSpec(path="./GPUFilter.jl"));
-          Pkg.develop(PackageSpec(path="./MHDIO.jl")); 
+          Pkg.develop(PackageSpec(path="./NRRDIO.jl")); 
           Pkg.develop(PackageSpec(path="./FFTRegGPU.jl")); 
-          Pkg.develop(PackageSpec(path="./ImageDataIO.jl")); 
+          Pkg.develop(PackageSpec(path="./ImageDataIO.jl"));
+          Pkg.develop(PackageSpec(path="./UNet2D.jl")); 
           Pkg.develop(PackageSpec(path="./WormCurveFinder.jl")); 
           Pkg.develop(PackageSpec(path="./Clustering.jl")); 
           Pkg.develop(PackageSpec(path="./WormFeatureDetector.jl")); 
