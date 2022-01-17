@@ -23,6 +23,16 @@ jobs:
           token: ${{ secrets.GOLDENRATIO1618_ACCESS_TOKEN }}
       - uses: actions/checkout@master
         with:
+          repository: flavell-lab/TotalVariation.jl
+          path: ./TotalVariation.jl
+          token: ${{ secrets.GOLDENRATIO1618_ACCESS_TOKEN }}
+      - uses: actions/checkout@master
+        with:
+          repository: flavell-lab/SegmentationStats.jl
+          path: ./SegmentationStats.jl
+          token: ${{ secrets.GOLDENRATIO1618_ACCESS_TOKEN }}
+      - uses: actions/checkout@master
+        with:
           repository: flavell-lab/GPUFilter.jl
           path: ./GPUFilter.jl
           token: ${{ secrets.GOLDENRATIO1618_ACCESS_TOKEN }}
@@ -76,25 +86,38 @@ jobs:
           repository: flavell-lab/RegistrationGraph.jl
           path: ./RegistrationGraph.jl
           token: ${{ secrets.GOLDENRATIO1618_ACCESS_TOKEN }}
-      - name: Install package
+      - uses: actions/checkout@master
+        with:
+          repository: flavell-lab/unet2d
+          path: ./unet2d
+          token: ${{ secrets.GOLDENRATIO1618_ACCESS_TOKEN }}
+      - name: Install Julia Python environment
         run: julia --project=docs/ -e 'using Pkg; 
           Pkg.add("PyCall");
           ENV["PYTHON"] = "";
           Pkg.build("PyCall");
           Pkg.add("PyPlot");
-          Pkg.build("PyPlot");
+          Pkg.build("PyPlot");'
+      - name: Setup python packages
+        run: ~/.julia/conda/3/bin/pip install torch==1.8.2+cu111 torchvision==0.9.2+cu111 torchaudio==0.8.2 -f https://download.pytorch.org/whl/lts/1.8/torch_lts.html;
+          cd unet2d;
+          ~/.julia/conda/3/bin/pip install .
+      - name: Install packages
+        run: julia --project=docs/ -e 'using Pkg;
           Pkg.develop(PackageSpec(path="./FlavellBase.jl"));
+          Pkg.develop(PackageSpec(path="./TotalVariation.jl"));
+          Pkg.develop(PackageSpec(path="./SegmentationStats.jl"));
           Pkg.develop(PackageSpec(path="./GPUFilter.jl"));
           Pkg.develop(PackageSpec(path="./NRRDIO.jl")); 
           Pkg.develop(PackageSpec(path="./FFTRegGPU.jl")); 
-          Pkg.develop(PackageSpec(path="./ImageDataIO.jl"));
-          Pkg.develop(PackageSpec(path="./UNet2D.jl")); 
+          Pkg.develop(PackageSpec(path="./ImageDataIO.jl")); 
+          Pkg.develop(PackageSpec(path="./UNet2D.jl"));
           Pkg.develop(PackageSpec(path="./WormCurveFinder.jl")); 
           Pkg.develop(PackageSpec(path="./Clustering.jl")); 
           Pkg.develop(PackageSpec(path="./WormFeatureDetector.jl")); 
           Pkg.develop(PackageSpec(path="./SegmentationTools.jl")); 
           Pkg.develop(PackageSpec(path="./SLURMManager.jl")); 
-          Pkg.develop(PackageSpec(path="./RegistrationGraph.jl")); 
+          Pkg.develop(PackageSpec(path="./RegistrationGraph.jl"));
           Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
       - name: Build and deploy
         env:
