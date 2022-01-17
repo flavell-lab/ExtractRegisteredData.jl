@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@master
         with:
           repository: flavell-lab/NRRDIO.jl
-          path: ./MHDIO.jl
+          path: ./NRRDIO.jl
           token: ${{ secrets.GOLDENRATIO1618_ACCESS_TOKEN }}
       - uses: actions/checkout@master
         with:
