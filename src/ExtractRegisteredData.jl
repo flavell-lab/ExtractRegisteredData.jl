@@ -1,13 +1,14 @@
 module ExtractRegisteredData
 
-using LightGraphs, SimpleWeightedGraphs, DataStructures, SegmentationTools, ProgressMeter,
+using Graphs, SimpleWeightedGraphs, DataStructures, SegmentationTools, ProgressMeter,
     Statistics, SparseArrays, LinearAlgebra, Arpack, Clustering, StatsBase, Plots,
-    FlavellBase, MHDIO, ImageDataIO, PyPlot
+    FlavellBase, NRRDIO, ImageDataIO, PyPlot
 
 
 include("extract_traces.jl")
 include("run_transformix.jl")
 include("register_neurons.jl")
+include("merge.jl")
 
 export
     run_transformix_centroids,
@@ -26,5 +27,6 @@ export
     extract_activity_am_reg,
     extract_roi_overlap,
     output_roi_candidates,
-    make_traces_array
+    make_traces_array,
+    merge_confocal_data!
 end # module

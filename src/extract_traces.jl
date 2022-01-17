@@ -95,7 +95,8 @@ Also outputs a heatmap of the array, and the labels of which neurons correspond 
  - `traces::Dict`: Dictionary of traces.
  - `threshold::Real` (optional): Minimum number of time points necessary to include a neuron in the traces array.
         Default 1 (all ROIs displayed). It is recommended to set either this or the `valid_rois` parameter.
- - `valid_rois` (optional): If set, use this set of neurons (in order) in the array.
+ - `valid_rois` (optional): If set, use this set of neurons (in order) in the array. Set entries to `nothing` to insert gaps in the data
+        (eg: to preserve the previous labeling of neurons)
  - `contrast::Real` (optional): If set, increases the contrast of the heatmap. Does not change the output array.
  - `replace_blank::Bool` (optional): If set, replaces all blank entries in the traces (where the neuron was not found in that time point)
         with the median activity for that neuron.
@@ -105,10 +106,15 @@ function make_traces_array(traces::Dict; threshold::Real=1, valid_rois=nothing, 
     if isnothing(valid_rois)
         valid_rois = [roi for roi in keys(traces) if length(keys(traces[roi])) >= threshold]
     end
-    t_max = maximum([maximum(keys(traces[roi])) for roi in valid_rois])
+    t_max = maximum([isnothing(roi) ? 0 : maximum(keys(traces[roi])) for roi in valid_rois])
     traces_arr = zeros((length(valid_rois), t_max))
     count = 1
     for roi in valid_rois
+        if isnothing(roi)
+            traces_arr[count,:] .= NaN
+            count += 1
+            continue
+        end
         med = median([x for x in values(traces[roi]) if x == x])
         for t = 1:t_max
             if t in keys(traces[roi])
@@ -123,6 +129,7 @@ function make_traces_array(traces::Dict; threshold::Real=1, valid_rois=nothing, 
     end
 
     if cluster
+        @assert(!any(isnothing.(valid_rois)), "Cannot cluster null ROIs.")
         dist = pairwise_dist(traces_arr)
         cluster = hclust(dist, linkage=:single)
         ordered_traces_arr = zeros(size(traces_arr))
@@ -151,36 +158,31 @@ Extracts activity marker activity from camera-alignment registration. Returns an
  - `param::Dict`: Directory of imaging parameters.
  - `shear_params_dict::Dict`: Dictionary of shear-correction parameters used in the marker channel.
  - `crop_params_dict::Dict`: Dictionary of cropping parameters used in the marker channel.
- - `mhd_path_key::String` (optional): Key in `param_path` to path to unprocessed activity-channel MHD files. Default `path_dir_mhd`
+ - `nrrd_path_key::String` (optional): Key in `param_path` to path to unprocessed activity-channel NRRD files. Default `path_dir_nrrd`
  - `roi_dir_key::String` (optional): Key in `param_path` to directory of neuron ROI files. Default `path_dir_roi_watershed`.
  - `transform_key::String` (optional): Key in `param_path` to file name of transform parameter files. Default `path_dir_transformed_activity_marker_avg`.
 """
 function extract_activity_am_reg(param_path::Dict, param::Dict, shear_params_dict::Dict, crop_params_dict::Dict;
-        mhd_path_key::String="path_dir_mhd", roi_dir_key::String="path_dir_roi_watershed", transform_key::String="name_transform_activity_marker_avg")
+        nrrd_path_key::String="path_dir_nrrd", roi_dir_key::String="path_dir_roi_watershed", transform_key::String="name_transform_activity_marker_avg")
     errors = Dict()
     create_dir(param_path["path_dir_transformed_activity_marker"])
     get_basename = param_path["get_basename"]
-    mhd_path = param_path[mhd_path_key]
+    nrrd_path = param_path[nrrd_path_key]
     ch_activity = param["ch_activity"]
     t_range = param["t_range"]
     println("Transforming activity channel data...")
     @showprogress for t in t_range
         try
-            mhd_str = joinpath(param_path["path_root_process"], mhd_path, get_basename(t, ch_activity)*".mhd")
+            nrrd_str = joinpath(param_path["path_root_process"], nrrd_path, get_basename(t, ch_activity)*".nrrd")
             regpath = joinpath(param_path["path_dir_reg_activity_marker"], "$(t)to$(t)")
             create_dir(joinpath(param_path["path_dir_transformed_activity_marker"], "$(t)"))
             run_transformix_img(param_path["path_dir_reg_activity_marker"], 
-                joinpath(param_path["path_dir_transformed_activity_marker"], "$(t)"), mhd_str,
+                joinpath(param_path["path_dir_transformed_activity_marker"], "$(t)"), nrrd_str,
                 joinpath(regpath, param_path[transform_key]), 
                 joinpath(regpath, param_path["name_transform_activity_marker_roi"]), param_path["path_transformix"])
             
-            path_mhd_transformed = joinpath(param_path["path_dir_transformed_activity_marker"], get_basename(t, ch_activity)*".mhd")
-            img_transformed = read_img(MHD(joinpath(param_path["path_dir_transformed_activity_marker"], "$(t)", "result.mhd")))
-            mv(joinpath(param_path["path_dir_transformed_activity_marker"], "$(t)", "result.raw"),
-                    joinpath(param_path["path_dir_transformed_activity_marker"], get_basename(t, ch_activity)*".raw"), force=true)
-            
-            write_MHD_spec(path_mhd_transformed, param["spacing_lat"], param["spacing_axi"], size(img_transformed)..., get_basename(t,ch_activity))
-
+            mv(joinpath(param_path["path_dir_transformed_activity_marker"], "$(t)", "result.nrrd"),
+                    joinpath(param_path["path_dir_transformed_activity_marker"], get_basename(t, ch_activity)*".nrrd"), force=true)
         catch e
             errors[t] = e
         end
@@ -188,7 +190,7 @@ function extract_activity_am_reg(param_path::Dict, param::Dict, shear_params_dic
     param["t_range"] = [t for t in param["t_range"] if !(t in keys(errors))]
     t_range = param["t_range"]
     println("Shear-correcting activity channel data...")
-    shear_correction_mhd!(param_path, param, ch_activity, shear_params_dict, mhd_key="path_dir_transformed_activity_marker")
+    shear_correction_nrrd!(param_path, param, ch_activity, shear_params_dict, nrrd_in_key="path_dir_transformed_activity_marker")
     println("Cropping activity channel data...")
     crop_errors = crop_rotate!(param_path, param, t_range, [ch_activity], crop_params_dict)
     for t in keys(crop_errors)
@@ -197,8 +199,8 @@ function extract_activity_am_reg(param_path::Dict, param::Dict, shear_params_dic
 
     println("Extracting activity...")
     @showprogress for t in t_range
-        img = read_img(MHD(joinpath(param_path["path_dir_mhd_crop"], get_basename(t, ch_activity)*".mhd")))
-        img_roi = read_img(MHD(joinpath(param_path[roi_dir_key], "$(t).mhd")))
+        img = read_img(NRRD(joinpath(param_path["path_dir_nrrd_crop"], get_basename(t, ch_activity)*".nrrd")))
+        img_roi = read_img(NRRD(joinpath(param_path[roi_dir_key], "$(t).nrrd")))
 
         # get activity
         activity = get_activity(img_roi, img)
@@ -227,17 +229,19 @@ the moving and fixed datasets have the same path dictionary.
 function extract_roi_overlap(best_reg::Dict, param_path::Dict, param::Dict; reg_dir_key::String="path_dir_reg",
         transformed_dir_key::String="path_dir_transformed", reg_problems_key::String="path_reg_prob",
         param_path_moving::Union{Dict,Nothing}=nothing)
-    roi_overlaps = Dict()
-    roi_activity_diff = Dict()
-    errors = Dict()
+
+    problems = load_registration_problems([param_path[reg_problems_key]])
+
+    roi_overlaps = Vector{Dict}(undef, length(problems))
+    roi_activity_diff = Vector{Dict}(undef, length(problems))
+    errors = Vector{Exception}(undef, length(problems))
 
     if isnothing(param_path_moving)
         param_path_moving = param_path
     end
 
-    problems = load_registration_problems([param_path[reg_problems_key]])
-
-    Threads.@threads for (moving, fixed) in problems
+    @showprogress for i in 1:length(problems)
+        (moving, fixed) = problems[i]
         try
             dir = "$(moving)to$(fixed)"
             # Bspline registration failed
@@ -247,25 +251,39 @@ function extract_roi_overlap(best_reg::Dict, param_path::Dict, param::Dict; reg_
             best = best_reg[(moving, fixed)]
             tf_base = joinpath(param_path[reg_dir_key], "$(dir)/TransformParameters.$(best[1]).R$(best[2])")
             img, result = run_transformix_roi(joinpath(param_path[reg_dir_key], "$(dir)"), 
-                joinpath(param_path_moving["path_dir_roi_watershed"], "$(moving).mhd"),  joinpath(param_path[transformed_dir_key], "$(dir)"), 
+                joinpath(param_path_moving["path_dir_roi_watershed"], "$(moving).nrrd"),  joinpath(param_path[transformed_dir_key], "$(dir)"), 
                 "$(tf_base).txt", "$(tf_base)_roi.txt", param_path["path_transformix"])
-            roi = read_img(MHD(joinpath(param_path["path_dir_roi_watershed"], "$(fixed).mhd")))
+            roi = read_img(NRRD(joinpath(param_path["path_dir_roi_watershed"], "$(fixed).nrrd")))
             roi_regmap = delete_smeared_neurons(img, param["smeared_neuron_threshold"])
 
             roi_overlap, roi_activity = register_neurons_overlap(roi_regmap, roi, 
                 read_activity(joinpath(param_path_moving["path_dir_marker_signal"], "$(moving).txt")), 
                 read_activity(joinpath(param_path["path_dir_marker_signal"], "$(fixed).txt")))
-            roi_overlaps[(moving, fixed)] = roi_overlap
-            roi_activity_diff[(moving, fixed)] = roi_activity
+            roi_overlaps[i] = roi_overlap
+            roi_activity_diff[i] = roi_activity
         catch e
-            errors[(moving, fixed)] = e
+            errors[i] = e
         end
     end
 
-    if length(keys(errors)) > 0
+    roi_overlaps_dict = Dict()
+    roi_activity_diff_dict = Dict()
+    errors_dict = Dict()
+    for (i, problem) in enumerate(problems)
+        if isassigned(roi_overlaps, i)
+            roi_overlaps_dict[problem] = roi_overlaps[i]
+        end
+        if isassigned(roi_activity_diff, i)
+            roi_activity_diff_dict[problem] = roi_activity_diff[i]
+        end
+        if isassigned(errors, i)
+            errors_dict[problem] = errors[i]
+        end
+    end
+    if length(keys(errors_dict)) > 0
         @warn "Registration issues at some time points"
     end
-    return roi_overlaps, roi_activity_diff, errors
+    return roi_overlaps_dict, roi_activity_diff_dict, errors_dict
 end
 
 
@@ -278,14 +296,14 @@ Outputs neuron ROI candidates and a plot of their activity.
  - `inv_map::Dict`: Dictionary that maps ROI identity to time points and UNet ROI labels
  - `param_path::Dict`: Dictionary of paths to relevant files
  - `param::Dict`: Dictionary of parameter values
- - `get_basename::Function`: Function that gets the basename of an MHD file
+ - `get_basename::Function`: Function that gets the basename of an NRRD file
  - `channel::Integer`: Channel of the image to be displayed
  - `t_range`: All time points
 """
 function output_roi_candidates(traces::Dict, inv_map::Dict, param_path::Dict, param::Dict, get_basename::Function, channel::Integer, t_range)
     @showprogress for neuron in [x for x in keys(traces) if length(keys(traces[x])) >= param["num_detections_threshold"]]
         min_t = minimum(keys(inv_map[neuron]))
-        img = maxprj(Float64.(read_img(MHD(joinpath(param_path["path_dir_mhd_filt"], get_basename(min_t, channel)*".mhd")))), dims=3);
+        img = maxprj(Float64.(read_img(NRRD(joinpath(param_path["path_dir_nrrd_filt"], get_basename(min_t, channel)*".nrrd")))), dims=3);
         
         centroids = read_centroids_roi(joinpath(param_path["path_dir_centroid"], "$(min_t).txt"))
         roi = centroids[inv_map[neuron][min_t][1]][1:2]
