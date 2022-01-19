@@ -1,4 +1,4 @@
-function merge_confocal_data!(combined_data_dict::Dict, data_dict::Dict, data_dict_2::Dict, dataset::String; traces_key="traces_array", zscored_traces_key="raw_zscored_traces_array")
+function merge_confocal_data!(combined_data_dict::Dict, data_dict::Dict, data_dict_2::Dict, dataset::String; traces_key="traces_array", zscored_traces_key="raw_zscored_traces_array", F_F20_key="traces_array_F_F20")
     data_dict["roi_match_$dataset"] = zeros(Int32, length(data_dict["valid_rois"]))
     for i in 1:length(data_dict["valid_rois"])
         if isnothing(data_dict["valid_rois"][i])
@@ -20,9 +20,11 @@ function merge_confocal_data!(combined_data_dict::Dict, data_dict::Dict, data_di
     mean_val_2 = mean(data_dict_2[traces_key][data_dict["roi_match_$dataset"][data_dict["successful_idx_$dataset"]],:])
     combined_data_dict[traces_key][:,data_dict["max_t"]+1:end] .= mean_val_1 / mean_val_2 .* data_dict_2[traces_key][data_dict["roi_match_$dataset"][data_dict["successful_idx_$dataset"]],:];
 
+    combined_data_dict[F_F20_key] = zeros(size(combined_data_dict[traces_key]))
     combined_data_dict[zscored_traces_key] = zeros(size(combined_data_dict[traces_key]))
     for n=1:size(combined_data_dict[traces_key],1)
         combined_data_dict[zscored_traces_key][n,:] .= zscore(combined_data_dict[traces_key][n,:])
+        combined_data_dict[F_F20_key][n,:] .= combined_data_dict[traces_key][n,:] ./ percentile(combined_data_dict[traces_key][n,:], 20)
     end
     combined_data_dict["num_neurons"] = size(combined_data_dict[zscored_traces_key], 1)
 # these datasets had manual remapping
