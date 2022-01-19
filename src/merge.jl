@@ -1,4 +1,4 @@
-function merge_confocal_data!(combined_data_dict::Dict, data_dict::Dict, data_dict_2::Dict, dataset::String; is_deconvolved=false)
+function merge_confocal_data!(combined_data_dict::Dict, data_dict::Dict, data_dict_2::Dict, dataset::String; traces_key="traces_array", zscored_traces_key="raw_zscored_traces_array")
     data_dict["roi_match_$dataset"] = zeros(Int32, length(data_dict["valid_rois"]))
     for i in 1:length(data_dict["valid_rois"])
         if isnothing(data_dict["valid_rois"][i])
@@ -13,22 +13,19 @@ function merge_confocal_data!(combined_data_dict::Dict, data_dict::Dict, data_di
 
     data_dict["successful_idx_$dataset"] = [i for i in 1:length(data_dict["valid_rois"]) if (data_dict["roi_match_$dataset"][i] != 0)]
     
-    traces_key = is_deconvolved ? "deconvolved_traces_array" : "traces_array"
-    zscored_traces_key = is_deconvolved ? "zscored_traces_array" : "raw_zscored_traces_array"
+    max_t_all = size(data_dict[zscored_traces_key],2) + size(data_dict_2[traces_key],2)
+    combined_data_dict[traces_key] = zeros(length(data_dict["successful_idx_$dataset"]), max_t_all)
+    combined_data_dict[traces_key][:,1:data_dict["max_t"]] .= data_dict[traces_key][data_dict["successful_idx_$dataset"],:]
+    mean_val_1 = mean(data_dict[traces_key][data_dict["successful_idx_$dataset"],:])
+    mean_val_2 = mean(data_dict_2[traces_key][data_dict["roi_match_$dataset"][data_dict["successful_idx_$dataset"]],:])
+    combined_data_dict[traces_key][:,data_dict["max_t"]+1:end] .= mean_val_1 / mean_val_2 .* data_dict_2[traces_key][data_dict["roi_match_$dataset"][data_dict["successful_idx_$dataset"]],:];
 
-        max_t_all = size(data_dict[zscored_traces_key],2) + size(data_dict_2[traces_key],2)
-        combined_data_dict[traces_key] = zeros(length(data_dict["successful_idx_$dataset"]), max_t_all)
-        combined_data_dict[traces_key][:,1:data_dict["max_t"]] .= data_dict[traces_key][data_dict["successful_idx_$dataset"],:]
-        mean_val_1 = mean(data_dict[traces_key][data_dict["successful_idx_$dataset"],:])
-        mean_val_2 = mean(data_dict_2[traces_key][data_dict["roi_match_$dataset"][data_dict["successful_idx_$dataset"]],:])
-        combined_data_dict[traces_key][:,data_dict["max_t"]+1:end] .= mean_val_1 / mean_val_2 .* data_dict_2[traces_key][data_dict["roi_match_$dataset"][data_dict["successful_idx_$dataset"]],:];
-
-        combined_data_dict[zscored_traces_key] = zeros(size(combined_data_dict[traces_key]))
-        for n=1:size(combined_data_dict[traces_key],1)
-            combined_data_dict[zscored_traces_key][n,:] .= zscore(combined_data_dict[traces_key][n,:])
-        end
-        combined_data_dict["num_neurons"] = size(combined_data_dict[zscored_traces_key], 1)
-    # these datasets had manual remapping
+    combined_data_dict[zscored_traces_key] = zeros(size(combined_data_dict[traces_key]))
+    for n=1:size(combined_data_dict[traces_key],1)
+        combined_data_dict[zscored_traces_key][n,:] .= zscore(combined_data_dict[traces_key][n,:])
+    end
+    combined_data_dict["num_neurons"] = size(combined_data_dict[zscored_traces_key], 1)
+# these datasets had manual remapping
     inverse_map = []
     for i=1:maximum(data_dict["successful_idx_$dataset"])
         if i in data_dict["successful_idx_$dataset"]
