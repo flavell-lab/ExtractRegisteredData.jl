@@ -27,7 +27,7 @@ function merge_confocal_data!(combined_data_dict::Dict, data_dict::Dict, data_di
         combined_data_dict[F_F20_key][n,:] .= combined_data_dict[traces_key][n,:] ./ percentile(combined_data_dict[traces_key][n,:], 20)
     end
     combined_data_dict["num_neurons"] = size(combined_data_dict[zscored_traces_key], 1)
-# these datasets had manual remapping
+
     inverse_map = []
     for i=1:maximum(data_dict["successful_idx_$dataset"])
         if i in data_dict["successful_idx_$dataset"]
