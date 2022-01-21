@@ -300,8 +300,8 @@ Outputs neuron ROI candidates and a plot of their activity.
  - `channel::Integer`: Channel of the image to be displayed
  - `t_range`: All time points
 """
-function output_roi_candidates(traces::Dict, inv_map::Dict, param_path::Dict, param::Dict, get_basename::Function, channel::Integer, t_range)
-    @showprogress for neuron in [x for x in keys(traces) if length(keys(traces[x])) >= param["num_detections_threshold"]]
+function output_roi_candidates(traces::Dict, inv_map::Dict, param_path::Dict, param::Dict, get_basename::Function, channel::Integer, t_range, valid_rois)
+    @showprogress for (idx, neuron) in enumerate(valid_rois)
         min_t = minimum(keys(inv_map[neuron]))
         img = maxprj(Float64.(read_img(NRRD(joinpath(param_path["path_dir_nrrd_filt"], get_basename(min_t, channel)*".nrrd")))), dims=3);
         
@@ -317,7 +317,7 @@ function output_roi_candidates(traces::Dict, inv_map::Dict, param_path::Dict, pa
         axes[2].scatter(sorted_times, neuron_traces);
         axes[2].set_ylim(0, maximum(neuron_traces));
         axes[2].set_xlim(minimum(t_range), maximum(t_range));
-        PyPlot.savefig(joinpath(param_path["path_roi_candidates"], string(neuron)*".png"));
+        PyPlot.savefig(joinpath(param_path["path_roi_candidates"], string(idx)*".png"));
         PyPlot.close(fig)
      end
 end
