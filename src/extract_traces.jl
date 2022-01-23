@@ -45,11 +45,11 @@ Computes the error rate of the traces, assuming they are all supposed to have co
 - `traces`: the traces
 
 # Optional keyword arguments
-- `factor::Real`: multiplicative amount by which activity must differ from median to count as an error. Default 1.5.
-- `gfp_thresh::Real`: threshold amount for a neuron to be counted as having GFP (error rate is adjusted to account for mismatched neurons that have similar activity)
+- `gfp_thresh::Real`: threshold amount for a neuron to be counted as having GFP (error rate is adjusted to account for mismatched neurons that have similar activity).
+    Assumption is that GFP-negative traces have value 0. If a trace ever differs from its median by more than this, it is counted as a mis-registration
 - `num_thresh::Real`: minimum amount of neurons needed to consider a trace
 """
-function error_rate(traces; factor::Real=1.5, gfp_thresh::Real=170, num_thresh::Real=30)
+function error_rate(traces; gfp_thresh::Real=1.5, num_thresh::Real=30)
     tot = 0
     error = 0
     gfp = 0
@@ -67,7 +67,7 @@ function error_rate(traces; factor::Real=1.5, gfp_thresh::Real=170, num_thresh::
         if m > gfp_thresh
             gfp += 1
         end
-        err_rois[roi] = [t for t in keys(trace) if (trace[t] == trace[t]) && (((trace[t]/m) > factor) || ((m/trace[t]) > factor))]
+        err_rois[roi] = [t for t in keys(trace) if (trace[t] == trace[t]) && ((abs(trace[t]-m) > gfp_thresh)) && ((trace[t] > gfp_thresh) ⊻ (m > gfp_thresh))]
         for t in keys(trace)
             if !(t in keys(extracted_timepts))
                 extracted_timepts[t] = []

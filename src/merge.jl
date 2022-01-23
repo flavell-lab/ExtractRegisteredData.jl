@@ -28,15 +28,6 @@ function merge_confocal_data!(combined_data_dict::Dict, data_dict::Dict, data_di
     end
     combined_data_dict["num_neurons"] = size(combined_data_dict[zscored_traces_key], 1)
 
-    inverse_map = []
-    for i=1:maximum(data_dict["successful_idx_$dataset"])
-        if i in data_dict["successful_idx_$dataset"]
-            push!(inverse_map, findall(x->x==i, data_dict["successful_idx_$dataset"])[1])
-        else
-            push!(inverse_map, NaN)
-        end
-    end
-
     combined_data_dict["timestamps"] = deepcopy(data_dict["timestamps"])
     append!(combined_data_dict["timestamps"], data_dict_2["timestamps"])
     combined_data_dict["timestamps"] = combined_data_dict["timestamps"] .- combined_data_dict["timestamps"][1] 
@@ -51,7 +42,7 @@ function merge_confocal_data!(combined_data_dict::Dict, data_dict::Dict, data_di
     append!(combined_data_dict["stim_begin_confocal"], data_dict_2["stim_begin_confocal"])
 
         
-    valid_rois_remapped = [isnan(x) ? nothing : data_dict["valid_rois"][x] for x in inverse_map]
+    valid_rois_remapped = [data_dict["valid_rois"][x] for x in data_dict["successful_idx_$dataset"]]
     combined_data_dict["valid_rois"] = valid_rois_remapped
     combined_data_dict["inv_map"] = data_dict["inv_map"]
 
