@@ -13,7 +13,7 @@ function merge_confocal_data!(combined_data_dict::Dict, data_dict::Dict, data_di
 
     data_dict["successful_idx_$dataset"] = [i for i in 1:length(data_dict["valid_rois"]) if (data_dict["roi_match_$dataset"][i] != 0)]
     
-    max_t_all = size(data_dict[zscored_traces_key],2) + size(data_dict_2[traces_key],2)
+    max_t_all = size(data_dict[traces_key],2) + size(data_dict_2[traces_key],2)
     combined_data_dict[traces_key] = zeros(length(data_dict["successful_idx_$dataset"]), max_t_all)
     combined_data_dict[traces_key][:,1:data_dict["max_t"]] .= data_dict[traces_key][data_dict["successful_idx_$dataset"],:]
     mean_val_1 = mean(data_dict[traces_key][data_dict["successful_idx_$dataset"],:])
