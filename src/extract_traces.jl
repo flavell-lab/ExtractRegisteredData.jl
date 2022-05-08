@@ -310,10 +310,10 @@ function output_roi_candidates(traces, inv_map::Dict, param_path::Dict, param::D
         
         fig, axes = PyPlot.subplots(ncols=2, figsize=(12,6));
 
-        neuron_traces = traces[idx]
+        neuron_traces = traces[idx][t_range]
         axes[1].imshow(img);
         axes[1].scatter([roi[2]], [roi[1]], c="r", s=4);
-        axes[2].scatter(sorted_times, neuron_traces);
+        axes[2].scatter(t_range, neuron_traces);
         axes[2].set_ylim(0, maximum(neuron_traces));
         axes[2].set_xlim(minimum(t_range), maximum(t_range));
         PyPlot.savefig(joinpath(param_path["path_roi_candidates"], string(idx)*".png"));
