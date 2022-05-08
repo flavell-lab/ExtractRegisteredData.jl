@@ -292,7 +292,7 @@ end
 Outputs neuron ROI candidates and a plot of their activity.
 
 # Arguments
- - `traces::Dict`: Dictionary of traces for all ROIs
+ - `traces`: Array of traces for all ROIs
  - `inv_map::Dict`: Dictionary that maps ROI identity to time points and UNet ROI labels
  - `param_path::Dict`: Dictionary of paths to relevant files
  - `param::Dict`: Dictionary of parameter values
@@ -300,7 +300,7 @@ Outputs neuron ROI candidates and a plot of their activity.
  - `channel::Integer`: Channel of the image to be displayed
  - `t_range`: All time points
 """
-function output_roi_candidates(traces::Dict, inv_map::Dict, param_path::Dict, param::Dict, get_basename::Function, channel::Integer, t_range, valid_rois)
+function output_roi_candidates(traces, inv_map::Dict, param_path::Dict, param::Dict, get_basename::Function, channel::Integer, t_range, valid_rois)
     @showprogress for (idx, neuron) in enumerate(valid_rois)
         min_t = minimum(keys(inv_map[neuron]))
         img = maxprj(Float64.(read_img(NRRD(joinpath(param_path["path_dir_nrrd_filt"], get_basename(min_t, channel)*".nrrd")))), dims=3);
@@ -309,9 +309,8 @@ function output_roi_candidates(traces::Dict, inv_map::Dict, param_path::Dict, pa
         roi = centroids[inv_map[neuron][min_t][1]][1:2]
         
         fig, axes = PyPlot.subplots(ncols=2, figsize=(12,6));
-        sorted_times = sort(collect(keys(traces[neuron])));
 
-        neuron_traces = [traces[neuron][t] for t in sorted_times]
+        neuron_traces = traces[neuron]
         axes[1].imshow(img);
         axes[1].scatter([roi[2]], [roi[1]], c="r", s=4);
         axes[2].scatter(sorted_times, neuron_traces);
