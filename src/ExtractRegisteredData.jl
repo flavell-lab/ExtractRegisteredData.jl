@@ -23,6 +23,7 @@ export
     invert_label_map,
     find_neurons,
     match_neurons_across_datasets,
+    register_immobilized_rois,
     delete_smeared_neurons,
     extract_activity_am_reg,
     extract_roi_overlap,
