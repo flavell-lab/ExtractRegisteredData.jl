@@ -211,7 +211,7 @@ function pairwise_dist(regmap_matrix; threshold::Real=1e-16, dtype::Type=Float64
     d = regmap_matrix * transpose(regmap_matrix)
     l = length(regmap_matrix[:,1])
     r, c, v = findnz(d)
-    @showprogress for x=1:length(r)
+    for x=1:length(r)
         i = r[x]
         j = c[x]
         if i > j
