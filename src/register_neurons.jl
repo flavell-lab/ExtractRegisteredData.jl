@@ -210,11 +210,11 @@ Finds the distances between each pair of ROIs based on similarity between rows o
 function pairwise_dist(regmap_matrix; threshold::Real=1e-16, dtype::Type=Float64)
     d = regmap_matrix * transpose(regmap_matrix)
     l = length(regmap_matrix[:,1])
-    for i=1:l
-        for j=i+1:l
-            if j == i
-                continue
-            end
+    r, c, v = findnz(d)
+    for x=1:length(r)
+        i = r[x]
+        j = c[x]
+        if i > j
             d[i,j] = -d[i,j] / sqrt(d[i,i] * d[j,j] + threshold)
             d[j,i] = d[i,j]
         end
@@ -375,4 +375,81 @@ function match_neurons_across_datasets(label_map_1::Dict, label_map_2::Dict, inv
         end
     end
     return (matches_12, matches_21)
+end
+
+
+function register_immobilized_rois(regmap_matrix, label_map_regmap, inv_map_regmap, label_map_freelymoving,
+        valid_rois_freelymoving, param, reg_timept)
+
+    s = size(regmap_matrix)
+    roi_matches = Dict()
+    inv_matches = Dict()
+    t_imm = param["max_t"] + reg_timept
+
+    for roi_imm in keys(label_map_regmap[t_imm])
+        roi_matches[roi_imm] = Dict()
+        roi_imm_label = label_map_regmap[t_imm][roi_imm]
+        for roi_moving_label = 1:s[2]
+            if (regmap_matrix[roi_imm_label, roi_moving_label] <= 0) || roi_moving_label == roi_imm_label
+                continue
+            end
+            dict_moving = inv_map_regmap[roi_moving_label]
+            @assert(length(keys(dict_moving)) == 1, "Inverse regmap matrix map must be 1:1 in time.")
+            t_moving = collect(keys(dict_moving))[1]
+            @assert(length(collect(values(dict_moving))[1]) == 1, "Inverse regmap matrix must be 1:1 in ROIs.")
+            roi_moving = collect(values(dict_moving))[1][1]
+            
+            if !(t_moving in keys(label_map_freelymoving)) ||
+                    !(roi_moving in keys(label_map_freelymoving[t_moving]))
+                continue
+            end
+            
+            neuron_label_moving = label_map_freelymoving[t_moving][roi_moving]
+            neuron_moving = findall(n->n==neuron_label_moving, valid_rois_freelymoving)
+
+            # the ROI we registered to was not succesfully mapped in freely-moving dataset
+            if length(neuron_moving) == 0
+                continue
+            end
+            
+            @assert(length(neuron_moving)==1, "Number of neurons per label must be 1.")
+            neuron_moving = neuron_moving[1]
+
+            if neuron_moving in keys(roi_matches[roi_imm])
+                roi_matches[roi_imm][neuron_moving] += regmap_matrix[roi_imm_label, roi_moving_label]
+            else
+                roi_matches[roi_imm][neuron_moving] = regmap_matrix[roi_imm_label, roi_moving_label]
+            end
+
+            if !(neuron_moving in keys(inv_matches))
+                inv_matches[neuron_moving] = Dict()
+            end
+            if roi_imm in keys(inv_matches[neuron_moving])
+                inv_matches[neuron_moving][roi_imm] += regmap_matrix[roi_imm_label, roi_moving_label]
+            else
+                inv_matches[neuron_moving][roi_imm] = regmap_matrix[roi_imm_label, roi_moving_label]
+            end
+        end
+    end
+
+    roi_match_best = zeros(Int, maximum(keys(roi_matches)))
+    roi_match_confidence = zeros(maximum(keys(roi_matches)))
+    for roi in keys(roi_matches)
+        if length(keys(roi_matches[roi])) == 0
+            continue
+        end
+        s1 = sum(values(roi_matches[roi]))
+        for neuron in keys(roi_matches[roi])
+            s2 = sum(values(inv_matches[neuron])) 
+            confidence1 = 2 * roi_matches[roi][neuron] - s1
+            confidence2 = 2 * inv_matches[neuron][roi] - s2
+            confidence = min(confidence1, confidence2)
+            if confidence > 0
+                @assert(roi_match_best[roi] == 0, "Cannot have multiple confident matches")
+                roi_match_best[roi] = Int(neuron)
+                roi_match_confidence[roi] = confidence
+            end
+        end
+    end
+    roi_matches, inv_matches, roi_match_best, roi_match_confidence
 end
