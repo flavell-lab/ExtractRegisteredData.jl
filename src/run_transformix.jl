@@ -54,7 +54,7 @@ Note that this is the opposite of `run_transformix_centroids`, because of the wa
 """
 function run_transformix_roi(path::String, input::String, output::String, parameters::String, parameters_roi::String, transformix_dir::String)
     create_dir(output)
-    modify_parameter_file(parameters, parameters_roi, Dict("FinalBSplineInterpolationOrder" => 0, "DefaultPixelvalue" => 0))
+    modify_parameter_file(parameters, parameters_roi, Dict("FinalBSplineInterpolationOrder" => 0, "DefaultPixelValue" => 0))
     cmd = Cmd(Cmd([transformix_dir, "-out", output, "-in", input, "-tp", parameters_roi]), dir=path)
     result = read(cmd)
     return (read_img(NRRD(joinpath(output, "result.nrrd"))), result)
