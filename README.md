@@ -1,8 +1,14 @@
 # ExtractRegisteredData.jl
 
-This package matches neurons across time points using image registration, and then extracts activity channel (GCaMP) traces of the detected neurons.
+[![][docs-stable-img]][docs-stable-url] [![][docs-latest-img]][docs-latest-url]
 
-The API is available [here](https://flavell-lab.github.io/ExtractRegisteredData.jl/dev/).
+[docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
+[docs-stable-url]: https://flavell-lab.github.io/ExtractRegisteredData.jl/stable/
+
+[docs-latest-img]: https://img.shields.io/badge/docs-latest-blue.svg
+[docs-latest-url]: https://flavell-lab.github.io/ExtractRegisteredData.jl/dev/
+
+This package matches neurons across time points using image registration, and then extracts activity channel (GCaMP) traces of the detected neurons.
 
 ## Prerequisites
 

@@ -5,7 +5,8 @@
 extract_roi_overlap
 make_regmap_matrix
 find_neurons
-match_neurons_across_datasets
+register_immobilized_rois
+invert_label_map
 ```
 
 ## `transformix` helper functions
@@ -20,6 +21,7 @@ run_transformix_img
 pairwise_dist
 register_neurons_overlap
 update_label_map
-invert_label_map
 delete_smeared_neurons
+merge_confocal_data!
+match_neurons_across_datasets
 ```

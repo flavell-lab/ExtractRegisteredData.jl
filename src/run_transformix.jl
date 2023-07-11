@@ -1,4 +1,6 @@
 """
+    run_transformix_centroids(path, output, centroids, parameters, transformix_dir)
+
 Runs transformix to map centroids from the fixed volume to the moving volume.
 Note that this is the opposite of `run_transformix_roi`, because of the way `transformix` is implemented.
 
@@ -17,6 +19,8 @@ function run_transformix_centroids(path, output, centroids, parameters, transfor
 end
 
 """
+    run_transformix_img(path::String, output::String, input::String, parameters::String, parameters_roi::String, transformix_dir::String; interpolation_degree::Int=1)
+
 Runs transformix to map an image from the moving volume to the fixed volume. 
 Returns the resulting transformed image.
 Note that this is the opposite of `run_transformix_centroids`, because of the way `transformix` is implemented.
@@ -39,6 +43,8 @@ end
 
 
 """
+    run_transformix_roi(path::String, input::String, output::String, parameters::String, parameters_roi::String, transformix_dir::String)    
+
 Runs transformix to map an ROI image from the moving volume to the fixed volume. 
 Modifies various transform parameters to force nearest-neighbors interpolation.
 Returns the resulting transformed image.

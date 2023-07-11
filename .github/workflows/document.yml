@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - develop
     tags: '*'
   pull_request:
 
@@ -15,7 +14,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@latest
         with:
-          version: '1.7.0'
+          version: '1.9.2'
       - uses: actions/checkout@master
         with:
           repository: flavell-lab/FlavellBase.jl
@@ -98,27 +97,29 @@ jobs:
           Pkg.build("PyCall");
           Pkg.add("PyPlot");
           Pkg.build("PyPlot");'
+      - name: Install matplotlib
+        run: ~/.julia/conda/3/x86_64/bin/pip install matplotlib
       - name: Setup python packages
-        run: ~/.julia/conda/3/bin/pip install torch==1.8.2+cu111 torchvision==0.9.2+cu111 torchaudio==0.8.2 -f https://download.pytorch.org/whl/lts/1.8/torch_lts.html;
+        run: ~/.julia/conda/3/x86_64/bin/pip install torch==1.13.1 torchvision torchaudio;
           cd unet2d;
-          ~/.julia/conda/3/bin/pip install .
+          ~/.julia/conda/3/x86_64/bin/pip install .
       - name: Install packages
         run: julia --project=docs/ -e 'using Pkg;
-          Pkg.develop(PackageSpec(path="./FlavellBase.jl"));
-          Pkg.develop(PackageSpec(path="./TotalVariation.jl"));
-          Pkg.develop(PackageSpec(path="./SegmentationStats.jl"));
-          Pkg.develop(PackageSpec(path="./GPUFilter.jl"));
-          Pkg.develop(PackageSpec(path="./NRRDIO.jl")); 
-          Pkg.develop(PackageSpec(path="./FFTRegGPU.jl")); 
-          Pkg.develop(PackageSpec(path="./ImageDataIO.jl")); 
-          Pkg.develop(PackageSpec(path="./UNet2D.jl"));
-          Pkg.develop(PackageSpec(path="./WormCurveFinder.jl")); 
-          Pkg.develop(PackageSpec(path="./Clustering.jl")); 
-          Pkg.develop(PackageSpec(path="./WormFeatureDetector.jl")); 
-          Pkg.develop(PackageSpec(path="./SegmentationTools.jl")); 
-          Pkg.develop(PackageSpec(path="./SLURMManager.jl")); 
-          Pkg.develop(PackageSpec(path="./RegistrationGraph.jl"));
-          Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+          Pkg.add(PackageSpec(path="./FlavellBase.jl"));
+          Pkg.add(PackageSpec(path="./TotalVariation.jl"));
+          Pkg.add(PackageSpec(path="./SegmentationStats.jl"));
+          Pkg.add(PackageSpec(path="./GPUFilter.jl"));
+          Pkg.add(PackageSpec(path="./NRRDIO.jl")); 
+          Pkg.add(PackageSpec(path="./FFTRegGPU.jl")); 
+          Pkg.add(PackageSpec(path="./ImageDataIO.jl")); 
+          Pkg.add(PackageSpec(path="./UNet2D.jl"));
+          Pkg.add(PackageSpec(path="./WormCurveFinder.jl")); 
+          Pkg.add(PackageSpec(path="./Clustering.jl")); 
+          Pkg.add(PackageSpec(path="./WormFeatureDetector.jl")); 
+          Pkg.add(PackageSpec(path="./SegmentationTools.jl")); 
+          Pkg.add(PackageSpec(path="./SLURMManager.jl")); 
+          Pkg.add(PackageSpec(path="./RegistrationGraph.jl"));
+          Pkg.add(PackageSpec(path=pwd())); Pkg.instantiate()'
       - name: Build and deploy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For authentication with GitHub Actions token

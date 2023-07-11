@@ -1,4 +1,6 @@
 """
+    extract_traces(inverted_map, gcamp_data_dir)
+
 Extracts traces from neuron labels.
 
 # Arguments
@@ -38,6 +40,8 @@ function extract_traces(inverted_map, gcamp_data_dir)
 end
 
 """
+    error_rate(traces; gfp_thresh::Real=1.5, num_thresh::Real=30)
+
 Computes the error rate of the traces, assuming they are all supposed to have constant activity.
 
 # Arguments
@@ -87,6 +91,8 @@ function error_rate(traces; gfp_thresh::Real=1.5, num_thresh::Real=30)
 end
 
 """
+    make_traces_array(traces::Dict; threshold::Real=1, valid_rois=nothing, contrast::Real=1, replace_blank::Bool=false, cluster::Bool=false)
+
 Turns a traces dictionary into a traces array.
 Also outputs a heatmap of the array, and the labels of which neurons correspond to which rows.
 
@@ -151,6 +157,12 @@ end
 
 
 """
+    extract_activity_am_reg(
+        param_path::Dict, param::Dict, shear_params_dict::Dict, crop_params_dict::Dict;
+        nrrd_path_key::String="path_dir_nrrd", roi_dir_key::String="path_dir_roi_watershed", 
+        transform_key::String="name_transform_activity_marker_avg"
+    )
+
 Extracts activity marker activity from camera-alignment registration. Returns any errors encountered.
 
 # Arguments
@@ -214,6 +226,12 @@ function extract_activity_am_reg(param_path::Dict, param::Dict, shear_params_dic
 end
 
 """
+    extract_roi_overlap(
+        best_reg::Dict, param_path::Dict, param::Dict; reg_dir_key::String="path_dir_reg",
+        transformed_dir_key::String="path_dir_transformed", reg_problems_key::String="path_reg_prob",
+        param_path_moving::Union{Dict,Nothing}=nothing
+    )
+
 Extracts ROI overlaps and activity differences.
 
 # Arguments
@@ -289,6 +307,8 @@ end
 
 
 """
+    output_roi_candidates(traces, inv_map::Dict, param_path::Dict, param::Dict, get_basename::Function, channel::Integer, t_range, valid_rois)
+
 Outputs neuron ROI candidates and a plot of their activity.
 
 # Arguments

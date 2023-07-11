@@ -1,4 +1,6 @@
 """
+    register_neurons_overlap(roi_inferred, roi, activity_inferred, activity)
+
 Matches ROIs from registered time points together based on the overlap heuristic.
 
 # Arguments
@@ -70,6 +72,8 @@ function register_neurons_overlap(roi_inferred, roi, activity_inferred, activity
 end
 
 """
+    centroids_to_roi(img_roi)
+
 Given an ROI image array `img_roi`, returns a dictionary whose keys are centroids of ROIs, with values the corresponding ROI.
 """
 function centroids_to_roi(img_roi)
@@ -154,6 +158,11 @@ end
 
 
 """
+    make_regmap_matrix(
+        roi_overlaps::Dict, roi_activity_diff::Dict, q_dict::Dict, best_reg::Dict, param::Dict;
+        watershed_errors::Union{Nothing,Dict}=nothing, max_fixed_t::Int=0
+    )
+
 Assimilates ROIs from all time points and generates a quality-of-match matrix.
 
 # Arguments
@@ -196,6 +205,8 @@ end
 
 
 """
+    pairwise_dist(regmap_matrix; threshold::Real=1e-16, dtype::Type=Float64)
+
 Finds the distances between each pair of ROIs based on similarity between rows of the `regmap_matrix`.
 
 # Arguments
@@ -226,6 +237,8 @@ function pairwise_dist(regmap_matrix; threshold::Real=1e-16, dtype::Type=Float64
 end
 
 """
+    delete_smeared_neurons(roi, threshold)
+
 Deletes neurons that might come from huge deformations in registration from an `roi` (neurons that have more pixels than `threshold`).
 """
 function delete_smeared_neurons(roi, threshold)
@@ -243,6 +256,8 @@ function delete_smeared_neurons(roi, threshold)
 end
 
 """
+    update_label_map(label_map, matches)
+
 Updates ROI label map `label_map` to include ROI matches `matches`, and returns updated version.
 """
 function update_label_map(label_map, matches)
@@ -257,6 +272,8 @@ function update_label_map(label_map, matches)
 end
 
 """
+    invert_label_map(label_map)
+
 Inverts ROI label map `label_map`, so that new ROIs map back to dictionaries mapping original time points to original ROIs.
 """
 function invert_label_map(label_map)
@@ -307,6 +324,8 @@ function find_neurons(regmap_matrix, label_map; overlap_threshold::Real=0.005, h
 end
 
 """
+    find_neurons(regmap_matrix, label_map::Dict, param::Dict)
+
 Groups ROIs into neurons based on a matrix of overlaps.
 
 # Arguments:
@@ -327,6 +346,8 @@ function find_neurons(regmap_matrix, label_map::Dict, param::Dict)
 end
 
 """
+    match_neurons_across_datasets(label_map_1::Dict, label_map_2::Dict, inv_map_reg::Dict, max_fixed_t::Int)
+
 Matches neurons across multiple datasets.
 
 # Arguments
@@ -377,7 +398,26 @@ function match_neurons_across_datasets(label_map_1::Dict, label_map_2::Dict, inv
     return (matches_12, matches_21)
 end
 
+"""
+    register_immobilized_rois(regmap_matrix, label_map_regmap, inv_map_regmap, label_map_freelymoving, valid_rois_freelymoving, param, reg_timept)
 
+Registers immobilized ROIs to the freely moving dataset.
+
+# Arguments:
+- `regmap_matrix`: Matrix of distances between the ROIs
+- `label_map_regmap::Dict`: Dictionary of dictionaries mapping original ROIs to new ROI labels for the freely-moving-to-immobilized registration.
+- `inv_map_regmap::Dict`: Dictionary of dictionaries mapping new ROI labels to original ROIs, for the freely-moving-to-immobilized registration.
+- `label_map_freelymoving::Dict`: Dictionary of dictionaries mapping original ROIs to new ROI labels in the freely-moving dataset (one of the outputs of `find_neurons`).
+- `valid_rois_freelymoving`: List of which ROIs correspond to neurons in the freely-moving dataset.
+- `param::Dict`: Dictionary containing `max_t` parameter setting to use for registration.
+- `reg_timept`: Time point of the immobilized dataset to register.
+
+# Returns:
+- `roi_matches`: Dictionary of dictionaries mapping immobilized ROIs to matched freely moving ROIs.
+- `inv_matches`: Dictionary of dictionaries mapping matched freely moving ROIs to immobilized ROIs.
+- `roi_matches_best`: Dictionary of dictionaries mapping immobilized ROIs to matched freely moving ROIs, with only the best match for each immobilized ROI.
+- `roi_match_confidence`: Dictionary of dictionaries mapping immobilized ROIs to the confidence of the match.
+"""
 function register_immobilized_rois(regmap_matrix, label_map_regmap, inv_map_regmap, label_map_freelymoving,
         valid_rois_freelymoving, param, reg_timept)
 

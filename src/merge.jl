@@ -1,3 +1,21 @@
+"""
+    merge_confocal_data!(combined_data_dict::Dict, data_dict::Dict, data_dict_2::Dict, dataset::String; traces_key="traces_array", zscored_traces_key="raw_zscored_traces_array", F_F20_key="traces_array_F_F20")
+
+This function merges neuron identities from two datasets from the same animal, `data_dict` and `data_dict_2`, into a new dictionary `combined_data_dict`.
+The function is used to combine data from two different datasets.
+
+# Arguments
+- `combined_data_dict::Dict`: A dictionary that will contain the merged data.
+- `data_dict::Dict`: A dictionary containing the first dataset to be merged.
+- `data_dict_2::Dict`: A dictionary containing the second dataset to be merged.
+- `dataset::String`: A string representing the name of the second dataset in the first dataset's dictionray.
+- `traces_key::String`: A string representing the key for the traces array in the dictionaries. Default is "traces_array".
+- `zscored_traces_key::String`: A string representing the key for the zscored traces array in the dictionaries. Default is "raw_zscored_traces_array".
+- `F_F20_key::String`: A string representing the key for the F/F0 traces array in the dictionaries. Default is "traces_array_F_F20".
+
+The function returns nothing, but modifies the `combined_data_dict` dictionary in place.
+
+"""
 function merge_confocal_data!(combined_data_dict::Dict, data_dict::Dict, data_dict_2::Dict, dataset::String; traces_key="traces_array", zscored_traces_key="raw_zscored_traces_array", F_F20_key="traces_array_F_F20")
     data_dict["roi_match_$dataset"] = zeros(Int32, length(data_dict["valid_rois"]))
     for i in 1:length(data_dict["valid_rois"])
