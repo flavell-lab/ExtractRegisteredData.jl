@@ -183,7 +183,7 @@ function extract_activity_am_reg(param_path::Dict, param::Dict, shear_params_dic
     ch_activity = param["ch_activity"]
     t_range = param["t_range"]
     println("Transforming activity channel data...")
-    @showprogress for t in t_range
+    for t in t_range
         try
             nrrd_str = joinpath(param_path["path_root_process"], nrrd_path, get_basename(t, ch_activity)*".nrrd")
             regpath = joinpath(param_path["path_dir_reg_activity_marker"], "$(t)to$(t)")
