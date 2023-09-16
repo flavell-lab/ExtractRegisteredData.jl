@@ -210,7 +210,7 @@ function extract_activity_am_reg(param_path::Dict, param::Dict, shear_params_dic
     end
 
     println("Extracting activity...")
-    @showprogress for t in t_range
+    for t in t_range
         img = read_img(NRRD(joinpath(param_path["path_dir_nrrd_crop"], get_basename(t, ch_activity)*".nrrd")))
         img_roi = read_img(NRRD(joinpath(param_path[roi_dir_key], "$(t).nrrd")))
 
