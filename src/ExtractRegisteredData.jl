@@ -1,7 +1,7 @@
 module ExtractRegisteredData
 
 using Graphs, SimpleWeightedGraphs, DataStructures, SegmentationTools, ProgressMeter,
-    Statistics, SparseArrays, LinearAlgebra, Arpack, SparseClustering, StatsBase, Plots,
+    Statistics, SparseArrays, LinearAlgebra, Arpack, Clustering, SparseClustering, StatsBase, Plots,
     FlavellBase, NRRDIO, ImageDataIO, PyPlot
 
 
