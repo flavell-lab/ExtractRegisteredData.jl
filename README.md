@@ -10,6 +10,8 @@
 
 This package matches neurons across time points using image registration, and then extracts activity channel (GCaMP) traces of the detected neurons.
 
+Note that `v1.0.1` is the last version of this package that uses the published `Clustering.jl` package; later versions have a `SparseClustering.jl` dependency instead, which is still pending publication.
+
 ## Prerequisites
 
 This package requires you to have previously installed the `FlavellBase.jl`, `ImageDataIO.jl`, `MHDIO.jl`, `CaSegmentation.jl`, `Clustering.jl`, and `SegmentationTools.jl` packages. Note that you must use the Flavell Lab fork of `Clustering.jl` rather than the original Julia package.
