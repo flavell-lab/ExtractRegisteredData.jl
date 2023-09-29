@@ -295,49 +295,53 @@ end
 
 
 
+"""
+    find_neurons(regmap_matrix, label_map; overlap_threshold::Real=0.005, height_threshold::Real=-0.01, dtype::Type=Float64, pair_match::Bool=false)
+
+Groups ROIs (Regions of Interest) into neurons based on a matrix of pairwise overlaps and a given label map.
+
+# Arguments:
+- `regmap_matrix`: Matrix representing the pairwise overlaps between the ROIs.
+- `label_map`: A dictionary mapping original ROIs to new ROI labels for each time point.
+- `overlap_threshold::Real`: A threshold for the fraction of overlapping ROIs from the same time point. Clusters with an overlap exceeding this threshold will not be merged. Default is 0.005.
+- `height_threshold::Real`: The maximum distance or overlap between two ROIs that can be merged. Default is -0.01.
+- `dtype::Type`: The desired data type for internal computations. Default is Float64.
+- `pair_match::Bool`: A flag indicating whether to merge clusters with a maximum size of 2. Default is false.
+
+# Returns:
+- `new_label_map`: A dictionary mapping original ROIs to neuron labels for each time point.
+- `new_inv_map`: A dictionary mapping neuron labels back to the original ROIs for each time point.
+
+# Note:
+This function uses hierarchical clustering with constraints to group ROIs into neurons. The provided label map is crucial for this process as it dictates the initial mapping of ROIs.
+"""
 function find_neurons(regmap_matrix, label_map; overlap_threshold::Real=0.005, height_threshold::Real=-0.01, dtype::Type=Float64, pair_match::Bool=false)
     inv_map = invert_label_map(label_map)
     dist = pairwise_dist(regmap_matrix, dtype=dtype)
-    hmer = hclust_minimum_threshold(dist, inv_map, overlap_threshold, pair_match=pair_match)
+    clusters = hclust_minimum_threshold_sparse(dist, inv_map, overlap_threshold, height_threshold, pair_match=pair_match)
+    
     n = length(keys(inv_map))
     c_to_roi = Dict()
-    n_to_c = [-i for i=1:n]
-    for i in 1:n
-        c_to_roi[-i] = [i]
-    end
-
-    @showprogress for i = 1:length(hmer.heights)
-        if hmer.heights[i] >= height_threshold
-            break
-        end
-        merged = copy(c_to_roi[hmer.mleft[i]])
-        append!(merged, c_to_roi[hmer.mright[i]])
-        c_to_roi[i] = merged
-        merged_rois = sort(map(x->collect(keys(inv_map[x]))[1], merged))
-        for j in merged
-            n_to_c[j] = i
-        end
-    end
+    n_to_c = [find(clusters, i) for i in 1:n]
+    
     new_label_map = update_label_map(label_map, n_to_c)
-    new_inv_map = invert_label_map(new_label_map);
-    return (new_label_map, new_inv_map, hmer)
+    new_inv_map = invert_label_map(new_label_map)
+    return (new_label_map, new_inv_map)
 end
 
 """
     find_neurons(regmap_matrix, label_map::Dict, param::Dict)
 
-Groups ROIs into neurons based on a matrix of overlaps.
+Groups ROIs into neurons based on a matrix of pairwise overlaps and a given label map.
 
 # Arguments:
-- `regmap_matrix`: Matrix of distances between the ROIs
+- `regmap_matrix`: Matrix of pairwise overlaps between the ROIs.
 - `label_map::Dict`: Dictionary of dictionaries mapping original ROIs to new ROI labels, for each time point.
-- `param::Dict`: Dictionary containing `cluster_overlap_thresh` and `cluster_height_thresh` parameter settings to use for clustering. 
+- `param::Dict`: Dictionary containing `cluster_overlap_thresh` and `cluster_height_thresh` parameter settings to use for clustering.
 
-# Returns
-
+# Returns:
 - `new_label_map`: Dictionary of dictionaries mapping original ROIs to neuron labels, for each time point.
-- `inv_map`: Dictionary of dictionaries mapping time points to original ROIs, for each neuron label
-- `hmer`: Raw clusters of the dataset.
+- `inv_map`: Dictionary of dictionaries mapping time points to original ROIs, for each neuron label.
 """
 function find_neurons(regmap_matrix, label_map::Dict, param::Dict)
     return find_neurons(regmap_matrix, label_map,
