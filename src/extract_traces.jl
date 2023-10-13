@@ -247,7 +247,7 @@ the moving and fixed datasets have the same path dictionary.
 """
 function extract_roi_overlap(best_reg::Dict, param_path::Dict, param::Dict; reg_dir_key::String="path_dir_reg",
         transformed_dir_key::String="path_dir_transformed", reg_problems_key::String="path_reg_prob",
-        param_path_moving::Union{Dict,Nothing}=nothing, alt_savepath::Union{Dict,Nothing}=nothing)
+        param_path_moving::Union{Dict,Nothing}=nothing, alt_savepath::Union{String,Nothing}=nothing)
 
     problems = load_registration_problems([param_path[reg_problems_key]])
 
