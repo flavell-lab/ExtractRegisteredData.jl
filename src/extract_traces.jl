@@ -243,10 +243,11 @@ Extracts ROI overlaps and activity differences.
  - `reg_problems_key::String` (optional): Key in `param_path` corresponding to the registration problems file. Default `path_reg_prob`.
  - `param_path_moving::Union{Dict, Nothing}`: If set, the `param_path` dictionary corresponding to the moving dataset. Otherwise, the method will assume
 the moving and fixed datasets have the same path dictionary.
+ - `alt_savepath::Union{Dict, Nothing}`: If set, save the modified ROI parameter files to this path instead of the original registration directory.
 """
 function extract_roi_overlap(best_reg::Dict, param_path::Dict, param::Dict; reg_dir_key::String="path_dir_reg",
         transformed_dir_key::String="path_dir_transformed", reg_problems_key::String="path_reg_prob",
-        param_path_moving::Union{Dict,Nothing}=nothing)
+        param_path_moving::Union{Dict,Nothing}=nothing, alt_savepath::Union{Dict,Nothing}=nothing)
 
     problems = load_registration_problems([param_path[reg_problems_key]])
 
@@ -268,9 +269,16 @@ function extract_roi_overlap(best_reg::Dict, param_path::Dict, param::Dict; reg_
             end
             best = best_reg[(moving, fixed)]
             tf_base = joinpath(param_path[reg_dir_key], "$(dir)/TransformParameters.$(best[1]).R$(best[2])")
+            if !isnothing(alt_savepath)
+                create_dir(alt_savepath)
+                create_dir(joinpath(alt_savepath, dir))
+                tf_save = joinpath(alt_savepath, dir, TransformParameters.$(best[1]).R$(best[2]))
+            else
+                tf_save = tf_base
+            end
             img, result = run_transformix_roi(joinpath(param_path[reg_dir_key], "$(dir)"), 
                 joinpath(param_path_moving["path_dir_roi_watershed"], "$(moving).nrrd"),  joinpath(param_path[transformed_dir_key], "$(dir)"), 
-                "$(tf_base).txt", "$(tf_base)_roi.txt", param_path["path_transformix"])
+                "$(tf_base).txt", "$(tf_save)_roi.txt", param_path["path_transformix"])
             roi = read_img(NRRD(joinpath(param_path["path_dir_roi_watershed"], "$(fixed).nrrd")))
             roi_regmap = delete_smeared_neurons(img, param["smeared_neuron_threshold"])
 
