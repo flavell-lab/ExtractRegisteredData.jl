@@ -272,7 +272,7 @@ function extract_roi_overlap(best_reg::Dict, param_path::Dict, param::Dict; reg_
             if !isnothing(alt_savepath)
                 create_dir(alt_savepath)
                 create_dir(joinpath(alt_savepath, dir))
-                tf_save = joinpath(alt_savepath, dir, TransformParameters.$(best[1]).R$(best[2]))
+                tf_save = joinpath(alt_savepath, dir, "TransformParameters.$(best[1]).R$(best[2])")
             else
                 tf_save = tf_base
             end
