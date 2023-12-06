@@ -117,8 +117,8 @@ function extract_roi_overlap_deepreg(problems::Vector, q_dict::Dict, param_path:
         param_path_moving = param_path
     end
 
-    @assert(length(params[dataset_central]["good_registration_resolutions"]) == 1)
-    best = params[dataset_central]["good_registration_resolutions"][1]
+    @assert(length(param["good_registration_resolutions"]) == 1)
+    best = param["good_registration_resolutions"][1]
 
     @showprogress for i in 1:length(problems)
         (moving, fixed) = problems[i]
