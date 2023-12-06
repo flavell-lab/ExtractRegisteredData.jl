@@ -9,6 +9,7 @@ include("extract_traces.jl")
 include("run_transformix.jl")
 include("register_neurons.jl")
 include("merge.jl")
+include("extract_roi_overlap.jl")
 
 export
     run_transformix_centroids,
@@ -27,6 +28,7 @@ export
     delete_smeared_neurons,
     extract_activity_am_reg,
     extract_roi_overlap,
+    extract_roi_overlap_deepreg,
     output_roi_candidates,
     make_traces_array,
     merge_confocal_data!
