@@ -89,6 +89,77 @@ function centroids_to_roi(img_roi)
     return centroids
 end
 
+function make_regmap_matrix(roi_overlaps::Dict, roi_activity_diff::Dict, q_dict::Dict, best_reg::Dict, regularization_dict::Dict, displacement_dict::Dict;
+        activity_diff_threshold::Real=0.3, watershed_error_penalty::Real=0.5, metric = "NCC", self_weight=0.5,
+        size_mismatch_penalty=2, regularization_weight=10.0, regularization_key="nonrigid_penalty", watershed_errors::Union{Nothing,Dict}=nothing, max_fixed_t::Int=0,
+        displacement_thresh=2.0)
+
+    label_map = Dict()
+    regmap_matrix = [Array{Int64,1}(), Array{Int64,1}(), Array{Float64,1}()]
+    label_weight = Dict()
+    count = 1
+    for (moving, fixed) in keys(roi_overlaps)
+        moving_shifted = moving + max_fixed_t
+        if !(moving_shifted in keys(label_map))
+            label_map[moving_shifted] = Dict()
+        end
+        if !(fixed in keys(label_map))
+            label_map[fixed] = Dict()
+        end
+        for (roi_moving, roi_fixed) in keys(roi_overlaps[(moving, fixed)])
+            if !(roi_moving in keys(label_map[moving_shifted]))
+                label_map[moving_shifted][roi_moving] = count
+                count += 1
+            end
+            if !(roi_fixed in keys(label_map[fixed]))
+                label_map[fixed][roi_fixed] = count
+                count += 1
+            end
+            # weight of an edge is how well the ROIs overlap
+            match_weight = minimum(roi_overlaps[(moving, fixed)][(roi_moving, roi_fixed)]) ^ size_mismatch_penalty
+            # penalize for mNeptune activity being different
+            match_weight *= activity_diff_threshold / (activity_diff_threshold + roi_activity_diff[(moving, fixed)][(roi_moving, roi_fixed)])
+            # penalize for bad registration quality between time points
+            match_weight /= (q_dict[(moving, fixed)][best_reg[(moving, fixed)]][metric])
+            # penalize for large regularization weight
+            match_weight /= (get(regularization_dict, (moving, fixed), Dict(regularization_key => 0.0))[regularization_key] * regularization_weight + 1)
+            # penalize for individual ROIs moving too much
+            match_weight *= (1.0 / (displacement_thresh + get(displacement_dict, (moving, fixed), Dict(roi_fixed => 1.0 - displacement_thresh))[roi_fixed]))
+            if !isnothing(watershed_errors) && roi_moving in watershed_errors[moving_shifted]
+                match_weight *= watershed_error_penalty
+            end
+            if !isnothing(watershed_errors) && roi_fixed in watershed_errors[fixed]
+                match_weight *= watershed_error_penalty
+            end
+            push!(regmap_matrix[1], label_map[moving_shifted][roi_moving])
+            push!(regmap_matrix[2], label_map[fixed][roi_fixed])
+            push!(regmap_matrix[3], match_weight)
+            push!(regmap_matrix[2], label_map[moving_shifted][roi_moving])
+            push!(regmap_matrix[1], label_map[fixed][roi_fixed])
+            push!(regmap_matrix[3], match_weight)
+        end
+    end
+    for i in 1:length(regmap_matrix[1])
+        roi1 = regmap_matrix[1][i]
+        label_weight[roi1] = get(label_weight, roi1, 0) + regmap_matrix[3][i]
+    end
+    m = mean(values(label_weight))
+    if m == 0
+        error("No successful registrations!")
+    end
+    for i in 1:length(regmap_matrix[1])
+        roi1 = regmap_matrix[1][i]
+        regmap_matrix[3][i] *= (1 - self_weight) / m
+    end
+    for i in 1:maximum(regmap_matrix[1])
+        push!(regmap_matrix[1], i)
+        push!(regmap_matrix[2], i)
+        push!(regmap_matrix[3], self_weight)
+    end
+
+    regmap_matrix = sparse(regmap_matrix[1], regmap_matrix[2], regmap_matrix[3])
+    return (regmap_matrix, label_map)
+end
 
 function make_regmap_matrix(roi_overlaps::Dict, roi_activity_diff::Dict, q_dict::Dict, best_reg::Dict;
         activity_diff_threshold::Real=0.3, watershed_error_penalty::Real=0.5, metric = "NCC", self_weight=0.5,
