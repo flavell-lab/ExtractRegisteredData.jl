@@ -89,10 +89,11 @@ function centroids_to_roi(img_roi)
     return centroids
 end
 
-
-function make_regmap_matrix(roi_overlaps::Dict, roi_activity_diff::Dict, q_dict::Dict, best_reg::Dict;
+function make_regmap_matrix(roi_overlaps::Dict, roi_activity_diff::Dict, q_dict::Dict, best_reg::Dict, regularization_dict::Dict, displacement_dict::Dict;
         activity_diff_threshold::Real=0.3, watershed_error_penalty::Real=0.5, metric = "NCC", self_weight=0.5,
-        size_mismatch_penalty=2, watershed_errors::Union{Nothing,Dict}=nothing, max_fixed_t::Int=0)
+        size_mismatch_penalty=2, regularization_weight=10.0, regularization_key="nonrigid_penalty", watershed_errors::Union{Nothing,Dict}=nothing, max_fixed_t::Int=0,
+        displacement_thresh=2.0)
+
     label_map = Dict()
     regmap_matrix = [Array{Int64,1}(), Array{Int64,1}(), Array{Float64,1}()]
     label_weight = Dict()
@@ -120,6 +121,10 @@ function make_regmap_matrix(roi_overlaps::Dict, roi_activity_diff::Dict, q_dict:
             match_weight *= activity_diff_threshold / (activity_diff_threshold + roi_activity_diff[(moving, fixed)][(roi_moving, roi_fixed)])
             # penalize for bad registration quality between time points
             match_weight /= (q_dict[(moving, fixed)][best_reg[(moving, fixed)]][metric])
+            # penalize for large regularization weight
+            match_weight /= (get(regularization_dict, (moving, fixed), Dict(regularization_key => 0.0))[regularization_key] * regularization_weight + 1)
+            # penalize for individual ROIs moving too much
+            match_weight *= (1.0 / (displacement_thresh + get(displacement_dict, (moving, fixed), Dict(roi_fixed => 1.0 - displacement_thresh))[roi_fixed]))
             if !isnothing(watershed_errors) && roi_moving in watershed_errors[moving_shifted]
                 match_weight *= watershed_error_penalty
             end
@@ -192,13 +197,17 @@ This dictionary must be pre-shifted if moving and fixed datasets are not the sam
 - `regmap_matrix`, a matrix whose `(i,j)`th entry encodes the quality of the match between ROIs `i` and `j`.
 - `label_map`: a dictionary of dictionaries mapping original ROIs to new ROI labels, for each time point.
 """
-function make_regmap_matrix(roi_overlaps::Dict, roi_activity_diff::Dict, q_dict::Dict, best_reg::Dict, param::Dict; watershed_errors::Union{Nothing,Dict}=nothing, max_fixed_t::Int=0)
-    return make_regmap_matrix(roi_overlaps, roi_activity_diff, q_dict, best_reg,
+function make_regmap_matrix(roi_overlaps::Dict, roi_activity_diff::Dict, q_dict::Dict, best_reg::Dict, param::Dict; 
+        regularization_dict::Dict=Dict(), displacement_dict=Dict(), watershed_errors::Union{Nothing,Dict}=nothing, max_fixed_t::Int=0)
+    return make_regmap_matrix(roi_overlaps, roi_activity_diff, q_dict, best_reg, regularization_dict, displacement_dict,
         activity_diff_threshold=param["activity_diff_threshold"],
         watershed_error_penalty=param["watershed_error_penalty"],
         metric=param["quality_metric"],
         self_weight=param["matrix_self_weight"],
         size_mismatch_penalty=param["size_mismatch_penalty"],
+        regularization_weight=get(param, "regularization_weight", 10.0),
+        regularization_key=get(param, "regularization_key", "nonrigid_penalty"),
+        displacement_thresh=get(param, "displacement_thresh", 2.0),
         watershed_errors=watershed_errors,
         max_fixed_t=max_fixed_t)
 end
