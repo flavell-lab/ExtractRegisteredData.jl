@@ -31,5 +31,7 @@ export
     extract_roi_overlap_deepreg,
     output_roi_candidates,
     make_traces_array,
-    merge_confocal_data!
+    merge_confocal_data!,
+    get_centroids_preservenum,
+    compute_centroid_dist_dict
 end # module
