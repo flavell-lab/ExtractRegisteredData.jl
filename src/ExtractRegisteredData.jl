@@ -2,7 +2,7 @@ module ExtractRegisteredData
 
 using Graphs, SimpleWeightedGraphs, DataStructures, SegmentationTools, ProgressMeter,
     Statistics, SparseArrays, LinearAlgebra, Arpack, Clustering, SparseClustering, StatsBase, Plots,
-    FlavellBase, NRRDIO, ImageDataIO, PyPlot
+    FlavellBase, NRRDIO, ImageDataIO, PyPlot, SegmentationStats
 
 
 include("extract_traces.jl")
