@@ -116,7 +116,7 @@ function compute_centroid_dist_dict(roi_centroids_fixed, roi_centroids_transform
                 if roi_centroids_fixed[fixed][roi_fixed,1] == -1 || roi_centroids_transformed[(moving, fixed)][roi_moving,1] == -1
                     continue
                 end
-                dist = euclidean_dist(roi_centroids_fixed[fixed][roi_fixed,:], roi_centroids_transformed[(moving, fixed)][roi_moving,:])
+                dist = norm(roi_centroids_fixed[fixed][roi_fixed,:] .- roi_centroids_transformed[(moving, fixed)][roi_moving,:], 2)
                 if dist < max_dist
                     centroid_dist[(moving, fixed)][(roi_moving, roi_fixed)] = dist
                 end
