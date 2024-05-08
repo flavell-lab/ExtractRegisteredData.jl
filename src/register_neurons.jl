@@ -89,7 +89,7 @@ function centroids_to_roi(img_roi)
     return centroids
 end
 
-function make_regmap_matrix(centroid_dist_dict::Dict, roi_overlaps::Dict, q_dict::Dict, best_reg::Dict, regularization_dict::Dict, displacement_dict::Dict, param_path::Dict;
+function make_regmap_matrix(centroid_dist_dict::Dict, roi_overlaps::Dict, q_dict::Dict, best_reg::Dict, regularization_dict::Dict, displacement_dict::Dict, param_path_fixed::Dict, param_path_moving::Dict;
         overlap_weight::Real=2.0, centroid_weight::Real=1.0, activity_diff_weight::Real=3.0, q_weight=25.0, regularization_weight=4.0, displacement_weight=2.0, self_weight=1.0, 
         metric = "NCC", regularization_key="nonrigid_penalty", max_fixed_t::Int=0, zero_overlap_val=1e-10, max_dist=10, min_weight=1e-6
     )
@@ -113,7 +113,7 @@ function make_regmap_matrix(centroid_dist_dict::Dict, roi_overlaps::Dict, q_dict
 
         activity_fixed = read_activity(joinpath(param_path["path_dir_marker_signal"], "$(fixed).txt"))
         activity_fixed = activity_fixed ./ mean(activity_fixed)
-        activity_moving = read_activity(joinpath(param_path["path_dir_marker_signal"], "$(moving).txt"))
+        activity_moving = read_activity(joinpath(param_path_moving["path_dir_marker_signal"], "$(moving).txt"))
         activity_moving = activity_moving ./ mean(activity_moving)
         
         for (roi_moving, roi_fixed) in roi_pairs
@@ -210,7 +210,7 @@ param_path = Dict(...)
 """
 function make_regmap_matrix(centroid_dist_dict::Dict, roi_overlaps::Dict, q_dict::Dict, best_reg::Dict, regularization_dict::Dict, displacement_dict::Dict, 
         param::Dict, param_path::Dict; max_fixed_t::Int=0)
-    return make_regmap_matrix(centroid_dist_dict, roi_overlaps, q_dict, best_reg, regularization_dict, displacement_dict, param_path,
+    return make_regmap_matrix(centroid_dist_dict, roi_overlaps, q_dict, best_reg, regularization_dict, displacement_dict, param_path, param_path,
         overlap_weight=param["overlap_weight"],
         centroid_weight=param["centroid_weight"],
         activity_diff_weight=param["activity_diff_weight"],
