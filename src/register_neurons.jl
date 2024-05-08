@@ -129,7 +129,7 @@ function make_regmap_matrix_(centroid_dist_dict::Dict, roi_overlaps::Dict, q_dic
             # penalize for large regularization weight
             match_weight *= exp(-regularization_weight * regularization_dict[(moving, fixed)][regularization_key])
             # penalize for individual ROIs moving too much
-            match_weight /= (1.0 + displacement_weight * displacement_dict[(moving, fixed)][roi_fixed])
+            match_weight /= (1.0 + displacement_weight * get(displacement_dict[(moving, fixed)], roi_fixed, 0.0))
 
             if match_weight < min_weight
                 continue
