@@ -19,6 +19,7 @@ export
     error_rate,
     register_neurons_overlap,
     make_regmap_matrix,
+    make_regmap_matrix_,
     pairwise_dist,
     update_label_map,
     invert_label_map,
