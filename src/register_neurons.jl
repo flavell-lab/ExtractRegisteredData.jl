@@ -89,7 +89,7 @@ function centroids_to_roi(img_roi)
     return centroids
 end
 
-function make_regmap_matrix_(centroid_dist_dict::Dict, roi_overlaps::Dict, q_dict::Dict, best_reg::Dict, regularization_dict::Dict, displacement_dict::Dict, param_path_fixed::Dict, param_path_moving::Dict;
+function make_regmap_matrix_(centroid_dist_dict::Dict, roi_overlaps::Dict, q_dict::Dict, best_reg::Dict, regularization_dict::Dict, displacement_dict::Dict, param_path::Dict, param_path_moving::Dict;
         overlap_weight::Real=2.0, centroid_weight::Real=1.0, activity_diff_weight::Real=3.0, q_weight=25.0, regularization_weight=4.0, displacement_weight=2.0, self_weight=1.0, 
         metric = "NCC", regularization_key="nonrigid_penalty", max_fixed_t::Int=0, zero_overlap_val=1e-10, max_dist=10, min_weight=1e-6
     )
