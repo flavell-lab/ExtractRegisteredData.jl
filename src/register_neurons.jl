@@ -89,16 +89,17 @@ function centroids_to_roi(img_roi)
     return centroids
 end
 
-function make_regmap_matrix(roi_overlaps::Dict, roi_activity_diff::Dict, q_dict::Dict, best_reg::Dict, regularization_dict::Dict, displacement_dict::Dict;
-        activity_diff_threshold::Real=0.3, watershed_error_penalty::Real=0.5, metric = "NCC", self_weight=0.5,
-        size_mismatch_penalty=2, regularization_weight=10.0, regularization_key="nonrigid_penalty", watershed_errors::Union{Nothing,Dict}=nothing, max_fixed_t::Int=0,
-        displacement_thresh=2.0)
+function make_regmap_matrix_(centroid_dist_dict::Dict, roi_overlaps::Dict, q_dict::Dict, best_reg::Dict, regularization_dict::Dict, displacement_dict::Dict, param_path::Dict, param_path_moving::Dict;
+        overlap_weight::Real=2.0, centroid_weight::Real=1.0, activity_diff_weight::Real=3.0, q_weight=25.0, regularization_weight=4.0, displacement_weight=2.0, self_weight=1.0, 
+        metric = "NCC", regularization_key="nonrigid_penalty", max_fixed_t::Int=0, zero_overlap_val=1e-10, max_dist=10, min_weight=1e-6
+    )
 
     label_map = Dict()
     regmap_matrix = [Array{Int64,1}(), Array{Int64,1}(), Array{Float64,1}()]
     label_weight = Dict()
     count = 1
-    for (moving, fixed) in keys(roi_overlaps)
+
+    for (moving, fixed) in keys(centroid_dist_dict)
         moving_shifted = moving + max_fixed_t
         if !(moving_shifted in keys(label_map))
             label_map[moving_shifted] = Dict()
@@ -106,7 +107,34 @@ function make_regmap_matrix(roi_overlaps::Dict, roi_activity_diff::Dict, q_dict:
         if !(fixed in keys(label_map))
             label_map[fixed] = Dict()
         end
-        for (roi_moving, roi_fixed) in keys(roi_overlaps[(moving, fixed)])
+        roi_pairs = collect(keys(centroid_dist_dict[(moving, fixed)]))
+        append!(roi_pairs, collect(keys(roi_overlaps[(moving, fixed)])))
+        roi_pairs = unique(roi_pairs)
+
+        activity_fixed = read_activity(joinpath(param_path["path_dir_marker_signal"], "$(fixed).txt"))
+        activity_fixed = activity_fixed ./ mean(activity_fixed)
+        activity_moving = read_activity(joinpath(param_path_moving["path_dir_marker_signal"], "$(moving).txt"))
+        activity_moving = activity_moving ./ mean(activity_moving)
+        
+        for (roi_moving, roi_fixed) in roi_pairs
+            # weight of an edge is how well the ROIs overlap
+            match_weight = minimum(get(roi_overlaps[(moving, fixed)], (roi_moving, roi_fixed), (zero_overlap_val, zero_overlap_val))) ^ overlap_weight
+            # penalize for centroids being far apart
+            match_weight *= exp(-centroid_weight * get(centroid_dist_dict[(moving, fixed)], (roi_moving, roi_fixed), max_dist))
+            # penalize for mNeptune activity being different
+            activity_mismatch = abs(activity_moving[roi_moving] - activity_fixed[roi_fixed])
+            match_weight *= exp(-activity_diff_weight * activity_mismatch)
+            # penalize for bad registration quality between time points
+            match_weight *= (q_dict[(moving, fixed)][best_reg[(moving, fixed)]][metric]) ^ q_weight
+            # penalize for large regularization weight
+            match_weight *= exp(-regularization_weight * regularization_dict[(moving, fixed)][regularization_key])
+            # penalize for individual ROIs moving too much
+            match_weight /= (1.0 + displacement_weight * get(displacement_dict[(moving, fixed)], roi_fixed, 0.0))
+
+            if match_weight < min_weight
+                continue
+            end
+
             if !(roi_moving in keys(label_map[moving_shifted]))
                 label_map[moving_shifted][roi_moving] = count
                 count += 1
@@ -115,22 +143,7 @@ function make_regmap_matrix(roi_overlaps::Dict, roi_activity_diff::Dict, q_dict:
                 label_map[fixed][roi_fixed] = count
                 count += 1
             end
-            # weight of an edge is how well the ROIs overlap
-            match_weight = minimum(roi_overlaps[(moving, fixed)][(roi_moving, roi_fixed)]) ^ size_mismatch_penalty
-            # penalize for mNeptune activity being different
-            match_weight *= activity_diff_threshold / (activity_diff_threshold + roi_activity_diff[(moving, fixed)][(roi_moving, roi_fixed)])
-            # penalize for bad registration quality between time points
-            match_weight /= (q_dict[(moving, fixed)][best_reg[(moving, fixed)]][metric])
-            # penalize for large regularization weight
-            match_weight /= (get(regularization_dict, (moving, fixed), Dict(regularization_key => 0.0))[regularization_key] * regularization_weight + 1)
-            # penalize for individual ROIs moving too much
-            match_weight *= (1.0 / (displacement_thresh + get(displacement_dict, (moving, fixed), Dict(roi_fixed => 1.0 - displacement_thresh))[roi_fixed]))
-            if !isnothing(watershed_errors) && roi_moving in watershed_errors[moving_shifted]
-                match_weight *= watershed_error_penalty
-            end
-            if !isnothing(watershed_errors) && roi_fixed in watershed_errors[fixed]
-                match_weight *= watershed_error_penalty
-            end
+
             push!(regmap_matrix[1], label_map[moving_shifted][roi_moving])
             push!(regmap_matrix[2], label_map[fixed][roi_fixed])
             push!(regmap_matrix[3], match_weight)
@@ -138,18 +151,6 @@ function make_regmap_matrix(roi_overlaps::Dict, roi_activity_diff::Dict, q_dict:
             push!(regmap_matrix[1], label_map[fixed][roi_fixed])
             push!(regmap_matrix[3], match_weight)
         end
-    end
-    for i in 1:length(regmap_matrix[1])
-        roi1 = regmap_matrix[1][i]
-        label_weight[roi1] = get(label_weight, roi1, 0) + regmap_matrix[3][i]
-    end
-    m = mean(values(label_weight))
-    if m == 0
-        error("No successful registrations!")
-    end
-    for i in 1:length(regmap_matrix[1])
-        roi1 = regmap_matrix[1][i]
-        regmap_matrix[3][i] *= (1 - self_weight) / m
     end
     for i in 1:maximum(regmap_matrix[1])
         push!(regmap_matrix[1], i)
@@ -161,57 +162,69 @@ function make_regmap_matrix(roi_overlaps::Dict, roi_activity_diff::Dict, q_dict:
     return (regmap_matrix, label_map)
 end
 
-
 """
-    make_regmap_matrix(
-        roi_overlaps::Dict, roi_activity_diff::Dict, q_dict::Dict, best_reg::Dict, param::Dict;
-        watershed_errors::Union{Nothing,Dict}=nothing, max_fixed_t::Int=0
-    )
+`make_regmap_matrix`
 
-Assimilates ROIs from all time points and generates a quality-of-match matrix.
+#### Description:
+Generates a matrix that encapsulates the quality of match between regions of interest (ROIs) across different time points or imaging conditions, considering various factors such as overlap, centroid proximity, activity difference, registration quality, and more. This function is typically used to aid in image registration or fusion tasks by providing a robust way to assess how well different regions align or correspond across datasets.
 
-# Arguments
+#### Parameters:
+- **centroid_dist_dict** (`Dict`): A dictionary containing the distances between centroids of corresponding ROIs in different images.
+- **roi_overlaps** (`Dict`): Dictionary detailing the overlap metrics between ROIs across the compared images.
+- **q_dict** (`Dict`): Dictionary that contains the registration quality metrics for each pair of compared images.
+- **best_reg** (`Dict`): Specifies the best registration configurations used between image pairs.
+- **regularization_dict** (`Dict`): Contains regularization penalties applied during the registration process.
+- **displacement_dict** (`Dict`): Contains displacement values for ROIs, indicating how much an ROI has moved from one image to another.
+- **param_path** (`Dict`): Dictionary specifying paths to necessary parameter files or data.
+- **overlap_weight** (`Real`, optional): Weight given to the overlap metric in the overall match score (default: 2.0).
+- **centroid_weight** (`Real`, optional): Weight applied to the centroid distance in the match score, influencing how centroid proximity affects the scoring (default: 1.0).
+- **activity_diff_weight** (`Real`, optional): Weight for the difference in activity (e.g., fluorescence intensity) between matched ROIs, influencing the score based on functional similarity (default: 3.0).
+- **q_weight** (`Real`, optional): Exponential weight applied to the quality of registration metric from `q_dict` (default: 25.0).
+- **regularization_weight** (`Real`, optional): Weight for the regularization penalty affecting the match score (default: 4.0).
+- **displacement_weight** (`Real`, optional): Weight given to the displacement of ROIs, affecting the match score based on how much ROIs have moved (default: 2.0).
+- **self_weight** (`Real`, optional): Weight for self-matching of ROIs, ensuring a baseline self-affinity (default: 1.0).
+- **metric** (`String`, optional): Specifies the metric used to assess registration quality from `q_dict` (default: "NCC").
+- **regularization_key** (`String`, optional): Key to access the specific regularization metric from `regularization_dict` (default: "nonrigid_penalty").
+- **max_fixed_t** (`Int`, optional): Maximum time offset for fixed datasets, used to adjust labels or indices in time-shifted analyses (default: 0).
+- **zero_overlap_val** (`Float`, optional): Small value used to avoid division by zero or log of zero in calculations involving no overlap (default: 1e-10).
+- **max_dist** (`Int`, optional): Maximum allowable distance for considering centroid proximity (default: 10).
+- **min_weight** (`Float`, optional): Minimum threshold for the weight of a match to be included in the final matrix (default: 1e-6).
 
-- `roi_overlaps::Dict`: a dictionary of dictionaries of ROI matches for each pair of moving and fixed time points
-- `roi_activity_diff::Dict`: a dictionaon of dictionaries of the difference between normalized red ROI acivity, for each pair of moving and fixed time points
-- `q_dict::Dict`: a dictionary of dictionaries of dictionaries of the registration quality for each metric for each resolution for each pair of moving and fixed time points
-- `best_reg::Dict`: a dictionary of the registration that's being used, expressed as a tuple of resolutions, for each pair of moving and fixed time points
-- `param::Dict`: a dictionary of parameter settings to use, including:
-    * `activity_diff_threshold::Real`: parameter that controls how much red-channel activity differences are penalized in the matrix.
-Smaller values = greater penalty. Default 0.3.
-    * `watershed_error_penalty::Real`: parameter that control how much watershed/UNet errors are penalized in the matrix.
-Smaller values = greater penalty. Default 0.5.
-    * `quality_metric`: metric to use in the `q_dict` parameter. Default `NCC`.
-    * `matrix_self_weight::Real`: amount of weight in the matrix to assign each ROI to itself. Default 0.5.
-    * `size_mismatch_penalty::Real`: penalty to apply to overlapping ROIs that don't fully overlap.
-Larger values = greater penalty. Default 2.
+#### Returns:
+- **Tuple**: Contains the `regmap_matrix`, a sparse matrix where each element (i, j) represents the computed match score between ROI i and j, and `label_map`, a dictionary mapping each original ROI to a new numerical label for easier reference in matrix operations.
 
-- `watershed_errors::Union{Nothing, Dict}`: a dictionary of ROIs that might have had watershed or UNet errors for every time point.
-This dictionary must be pre-shifted if moving and fixed datasets are not the same. Ignored if nothing.
+#### Usage Example:
+```julia
+# Define parameters and data structures
+centroid_dist = Dict(...)
+roi_overlaps = Dict(...)
+q_dict = Dict(...)
+best_reg = Dict(...)
+regularization_dict = Dict(...)
+displacement_dict = Dict(...)
+param_path = Dict(...)
 
-- `max_fixed_t::Int`: If the moving and fixed datasets are not the same, this number is added to each moving dataset time point
-    to distinguish the datasets in the matrix and label map.
-
-# Returns
-
-- `regmap_matrix`, a matrix whose `(i,j)`th entry encodes the quality of the match between ROIs `i` and `j`.
-- `label_map`: a dictionary of dictionaries mapping original ROIs to new ROI labels, for each time point.
+# Generate registration map matrix
+(regmap_matrix, label_map) = make_regmap_matrix(centroid_dist, roi_overlaps, q_dict, best_reg, regularization_dict, displacement_dict, param_path)
+```
 """
-function make_regmap_matrix(roi_overlaps::Dict, roi_activity_diff::Dict, q_dict::Dict, best_reg::Dict, param::Dict; 
-        regularization_dict::Dict=Dict(), displacement_dict=Dict(), watershed_errors::Union{Nothing,Dict}=nothing, max_fixed_t::Int=0)
-    return make_regmap_matrix(roi_overlaps, roi_activity_diff, q_dict, best_reg, regularization_dict, displacement_dict,
-        activity_diff_threshold=param["activity_diff_threshold"],
-        watershed_error_penalty=param["watershed_error_penalty"],
+function make_regmap_matrix(centroid_dist_dict::Dict, roi_overlaps::Dict, q_dict::Dict, best_reg::Dict, regularization_dict::Dict, displacement_dict::Dict, 
+        param::Dict, param_path::Dict; max_fixed_t::Int=0)
+    return make_regmap_matrix_(centroid_dist_dict, roi_overlaps, q_dict, best_reg, regularization_dict, displacement_dict, param_path, param_path,
+        overlap_weight=param["overlap_weight"],
+        centroid_weight=param["centroid_weight"],
+        activity_diff_weight=param["activity_diff_weight"],
+        q_weight=param["q_weight"],
+        regularization_weight=param["regularization_weight"],
+        displacement_weight=param["displacement_weight"],
         metric=param["quality_metric"],
-        self_weight=param["matrix_self_weight"],
-        size_mismatch_penalty=param["size_mismatch_penalty"],
-        regularization_weight=get(param, "regularization_weight", 10.0),
         regularization_key=get(param, "regularization_key", "nonrigid_penalty"),
-        displacement_thresh=get(param, "displacement_thresh", 2.0),
-        watershed_errors=watershed_errors,
-        max_fixed_t=max_fixed_t)
+        self_weight=param["matrix_self_weight"],
+        max_fixed_t=max_fixed_t,
+        max_dist=param["max_centroid_dist"],
+        min_weight=param["min_cluster_weight"]
+    )
 end
-
 
 """
     pairwise_dist(regmap_matrix; threshold::Real=1e-16, dtype::Type=Float64)
@@ -324,9 +337,9 @@ Groups ROIs (Regions of Interest) into neurons based on a matrix of pairwise ove
 # Note:
 This function uses hierarchical clustering with constraints to group ROIs into neurons. The provided label map is crucial for this process as it dictates the initial mapping of ROIs.
 """
-function find_neurons(regmap_matrix, label_map; overlap_threshold::Real=0.005, height_threshold::Real=-0.01, dtype::Type=Float64, pair_match::Bool=false)
+function find_neurons(regmap_matrix, label_map; overlap_threshold::Real=0.05, height_threshold::Real=-0.0003, dtype::Type=Float64, pair_match::Bool=false)
     inv_map = invert_label_map(label_map)
-    dist = pairwise_dist(regmap_matrix, dtype=dtype)
+    dist = -regmap_matrix
     clusters = hclust_minimum_threshold_sparse(dist, inv_map, overlap_threshold, height_threshold, pair_match=pair_match)
     
     n = length(keys(inv_map))

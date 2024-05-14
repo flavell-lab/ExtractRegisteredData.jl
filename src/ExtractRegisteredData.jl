@@ -2,7 +2,7 @@ module ExtractRegisteredData
 
 using Graphs, SimpleWeightedGraphs, DataStructures, SegmentationTools, ProgressMeter,
     Statistics, SparseArrays, LinearAlgebra, Arpack, Clustering, SparseClustering, StatsBase, Plots,
-    FlavellBase, NRRDIO, ImageDataIO, PyPlot
+    FlavellBase, NRRDIO, ImageDataIO, PyPlot, SegmentationStats
 
 
 include("extract_traces.jl")
@@ -19,6 +19,7 @@ export
     error_rate,
     register_neurons_overlap,
     make_regmap_matrix,
+    make_regmap_matrix_,
     pairwise_dist,
     update_label_map,
     invert_label_map,
@@ -31,5 +32,7 @@ export
     extract_roi_overlap_deepreg,
     output_roi_candidates,
     make_traces_array,
-    merge_confocal_data!
+    merge_confocal_data!,
+    get_centroids_preservenum,
+    compute_centroid_dist_dict
 end # module
