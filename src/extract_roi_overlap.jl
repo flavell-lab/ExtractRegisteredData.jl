@@ -87,6 +87,86 @@ end
 
 
 """
+    extract_roi_overlap_deepreg_multicolor(
+        problems::Vector, param_path::Dict, param::Dict, fixed_roi_path::String; reg_dir_key::String="path_dir_reg",
+        transformed_dir_key::String="path_dir_transformed",
+        param_path_moving::Union{Dict,Nothing}=nothing
+    )
+
+Extracts ROI overlaps and activity differences for deep registration of multicolor images.
+
+# Arguments
+ - `problems::Vector`: A vector of tuples, each containing the names of the moving and fixed datasets.
+ - `param_path::Dict`: Dictionary of paths to relevant files.
+ - `param::Dict`: Dictionary of parameter values.
+ - `fixed_roi_path::String` (optional): Path to the directory containing fixed ROI files in HDF5 format.
+ - `reg_dir_key::String` (optional): Key in `param_path` corresponding to the registration directory. Default is `path_dir_reg`.
+ - `transformed_dir_key::String` (optional): Key in `param_path` corresponding to the transformed ROI save directory. Default is `path_dir_transformed`.
+ - `param_path_moving::Union{Dict, Nothing}` (optional): If set, the `param_path` dictionary corresponding to the moving dataset. Otherwise, the method will assume the moving and fixed datasets have the same path dictionary.
+
+# Returns
+ - `roi_overlaps_dict::Dict`: Dictionary of ROI overlaps for each problem.
+ - `roi_activity_diff_dict::Dict`: Dictionary of ROI activity differences for each problem.
+ - `errors_dict::Dict`: Dictionary of errors encountered during processing.
+
+# Description
+This method processes a list of registration problems, each defined by a pair of moving and fixed dataset names. It computes the overlap and activity differences between the registered ROIs. The method assumes that the registration has already been performed and that the transformed images are available in the specified directory.
+"""
+function extract_roi_overlap_deepreg_multicolor(problems::Vector, param_path::Dict, param::Dict, fixed_roi_path; reg_dir_key::String="path_dir_reg",
+        transformed_dir_key::String="path_dir_transformed", param_path_moving::Union{Dict,Nothing}=nothing)
+
+    roi_overlaps = Vector{Dict}(undef, length(problems))
+    roi_activity_diff = Vector{Dict}(undef, length(problems))
+    errors = Vector{Exception}(undef, length(problems))
+
+    if isnothing(param_path_moving)
+        param_path_moving = param_path
+    end
+
+    @assert(length(param["good_registration_resolutions"]) == 1)
+    best = param["good_registration_resolutions"][1]
+
+    @showprogress for i in 1:length(problems)
+        (moving, fixed) = problems[i]
+        dir = "$(moving)to$(fixed)"
+
+        roi = nothing
+        h5open(joinpath(fixed_roi_path, "$(fixed).h5"), "r") do f
+            roi = permutedims(read(f["roi"]), (3,2,1))
+        end
+
+        img = read_img(NRRD(joinpath(param_path[transformed_dir_key], dir, "result.nrrd")))
+        roi_regmap = delete_smeared_neurons(img, param["smeared_neuron_threshold"])
+
+        roi_overlap, roi_activity = register_neurons_overlap(roi_regmap, roi, 
+            read_activity(joinpath(param_path_moving["path_dir_marker_signal"], "$(moving).txt")), 
+            read_activity(joinpath(param_path["path_dir_marker_signal"], "$(fixed).txt")))
+        roi_overlaps[i] = roi_overlap
+        roi_activity_diff[i] = roi_activity
+    end
+
+    roi_overlaps_dict = Dict()
+    roi_activity_diff_dict = Dict()
+    errors_dict = Dict()
+    for (i, problem) in enumerate(problems)
+        if isassigned(roi_overlaps, i)
+            roi_overlaps_dict[problem] = roi_overlaps[i]
+        end
+        if isassigned(roi_activity_diff, i)
+            roi_activity_diff_dict[problem] = roi_activity_diff[i]
+        end
+        if isassigned(errors, i)
+            errors_dict[problem] = errors[i]
+        end
+    end
+    if length(keys(errors_dict)) > 0
+        @warn "Registration issues at some time points"
+    end
+    return roi_overlaps_dict, roi_activity_diff_dict, errors_dict
+end
+
+
+"""
 `compute_centroid_dist_dict`
 
 #### Description:
