@@ -163,6 +163,154 @@ function make_regmap_matrix_(centroid_dist_dict::Dict, roi_overlaps::Dict, q_dic
 end
 
 """
+    make_regmap_matrix_multicolor(
+        centroid_dist_dict::Dict, roi_overlaps::Dict, q_dict::Dict, best_reg::Dict, 
+        regularization_dict::Dict, displacement_dict::Dict, param_path::Dict, param_path_moving::Dict;
+        ch_list=1:4, overlap_weight::Real=1.0, centroid_weight::Real=1.0, activity_diff_weight::Real=2.0, 
+        color_diff_weight::Real=2.0, q_weight::Real=25.0, regularization_weight::Real=1.0, 
+        displacement_weight::Real=2.0, self_weight::Real=1.0, metric::String="NCC", 
+        regularization_key::String="nonrigid_penalty", max_fixed_t::Int=0, zero_overlap_val::Float64=1e-10, 
+        max_dist::Int=10, min_weight::Float64=1e-12, timepoints_exclude::Vector{Int}= []
+    )
+
+Generates a matrix representing the quality of matches between regions of interest (ROIs) across different time points or imaging conditions for multicolor images in the context of image registration.
+
+# Arguments
+- `centroid_dist_dict::Dict`: Dictionary containing the distances between centroids of corresponding ROIs in moving and fixed images.
+- `roi_overlaps::Dict`: Dictionary detailing the overlap metrics between ROIs across the moving and fixed images.
+- `q_dict::Dict`: Dictionary containing the registration quality metrics for each pair of moving and fixed images.
+- `best_reg::Dict`: Dictionary specifying the best registration configurations used between image pairs.
+- `regularization_dict::Dict`: Dictionary containing regularization penalties for each registration problem.
+- `displacement_dict::Dict`: Dictionary containing displacement values for ROIs, indicating how much an ROI has moved from one image to another.
+- `param_path::Dict`: Dictionary specifying paths to necessary parameter files or data.
+- `param_path_moving::Dict`: Dictionary specifying paths to parameter files or data for the moving dataset.
+- `ch_list::UnitRange` (optional): Range of channels to process. Default is `1:4`.
+- `overlap_weight::Real` (optional): Weight given to the overlap metric in the overall match score. Default is `1.0`.
+- `centroid_weight::Real` (optional): Weight applied to the centroid distance in the match score, influencing how centroid proximity affects the scoring. Default is `1.0`.
+- `activity_diff_weight::Real` (optional): Weight for the difference in activity (e.g., fluorescence intensity) between matched ROIs, influencing the score based on functional similarity. Default is `0.0`.
+- `color_diff_weight::Real` (optional): Weight for the difference in color between matched ROIs, influencing the score based on relative color similarity. Default is `7.0`.
+- `q_weight::Real` (optional): Exponential weight applied to the quality of registration metric from `q_dict`. Default is `25.0`.
+- `regularization_weight::Real` (optional): Weight for the regularization penalty affecting the match score. Default is `1.0`.
+- `displacement_weight::Real` (optional): Weight given to the displacement of ROIs, affecting the match score based on how much ROIs have moved. Default is `2.0`.
+- `self_weight::Real` (optional): Weight for self-matching of ROIs, ensuring a baseline self-affinity. Default is `1.0`.
+- `metric::String` (optional): Specifies the metric used to assess registration quality from `q_dict`. Default is `"NCC"`.
+- `regularization_key::String` (optional): Key to access the specific regularization metric from `regularization_dict`. Default is `"nonrigid_penalty"`.
+- `max_fixed_t::Int` (optional): Maximum time offset for fixed datasets, used to adjust labels or indices in time-shifted analyses. Default is `0`.
+- `zero_overlap_val::Float64` (optional): Small value used to avoid division by zero or log of zero in calculations involving no overlap. Default is `1e-10`.
+- `max_dist::Int` (optional): Maximum allowable distance for considering centroid proximity. Default is `10`.
+- `min_weight::Float64` (optional): Minimum threshold for the weight of a match to be included in the final matrix. Default is `1e-12`.
+- `timepoints_exclude::Vector{Int}` (optional): List of time points to exclude from the analysis. Default is `[]`.
+
+# Returns
+- `Tuple`: A tuple containing:
+  - `regmap_matrix::SparseMatrixCSC{Float64}`: A sparse matrix where each element `(i, j)` represents the computed match score between ROI `i` and ROI `j`.
+  - `label_map::Dict`: A dictionary mapping each original ROI to a new numerical label for easier reference in matrix operations.
+
+# Description
+This function processes pairs of moving and fixed datasets to generate a matrix that encapsulates the quality of match between ROIs across different time points or imaging conditions, specifically for multicolor images in the context of image registration. The matrix considers various factors such as overlap, centroid proximity, activity difference, color difference, registration quality, and more. The generated matrix is typically used in image registration tasks to assess the alignment or correspondence of different regions across datasets.
+"""
+function make_regmap_matrix_multicolor(centroid_dist_dict::Dict, roi_overlaps::Dict, q_dict::Dict, best_reg::Dict, regularization_dict::Dict, displacement_dict::Dict, param_path::Dict, param_path_moving::Dict; ch_list=1:4,
+        overlap_weight::Real=1.0, centroid_weight::Real=1.0, activity_diff_weight::Real=0.0, color_diff_weight::Real=7.0, q_weight=25.0, regularization_weight=1.0, displacement_weight=2.0, self_weight=1.0, 
+        metric = "NCC", regularization_key="nonrigid_penalty", max_fixed_t::Int=0, zero_overlap_val=1e-10, max_dist=10, min_weight=1e-12, timepoints_exclude=[]
+    )
+
+    println(timepoints_exclude)
+    label_map = Dict()
+    regmap_matrix = [Array{Int64,1}(), Array{Int64,1}(), Array{Float64,1}()]
+    label_weight = Dict()
+    count = 1
+
+    for (moving, fixed) in keys(centroid_dist_dict)
+        moving_shifted = moving + max_fixed_t
+
+        if (moving_shifted in timepoints_exclude) || (fixed in timepoints_exclude)
+            continue
+        end
+        if !(moving_shifted in keys(label_map))
+            label_map[moving_shifted] = Dict()
+        end
+        if !(fixed in keys(label_map))
+            label_map[fixed] = Dict()
+        end
+        roi_pairs = collect(keys(centroid_dist_dict[(moving, fixed)]))
+        append!(roi_pairs, collect(keys(roi_overlaps[(moving, fixed)])))
+        roi_pairs = unique(roi_pairs)
+
+        activity_fixed = []
+        activity_moving = []
+
+        for ch=ch_list
+            activity_fixed_ch = read_activity(joinpath(param_path["path_root_process"], "ch$(ch)_signal", "$(fixed).txt"))
+            activity_fixed_ch = activity_fixed_ch ./ mean(activity_fixed_ch)
+            activity_moving_ch = read_activity(joinpath(param_path_moving["path_root_process"], "ch$(ch)_signal", "$(moving).txt"))
+            activity_moving_ch = activity_moving_ch ./ mean(activity_moving_ch)
+
+            push!(activity_fixed, activity_fixed_ch)
+            push!(activity_moving, activity_moving_ch)
+        end
+        
+        for (roi_moving, roi_fixed) in roi_pairs
+            # weight of an edge is how well the ROIs overlap
+            match_weight = minimum(get(roi_overlaps[(moving, fixed)], (roi_moving, roi_fixed), (zero_overlap_val, zero_overlap_val))) ^ overlap_weight
+            # penalize for centroids being far apart
+            match_weight *= exp(-centroid_weight * get(centroid_dist_dict[(moving, fixed)], (roi_moving, roi_fixed), max_dist))
+            # penalize for mNeptune activity being different
+            for ch=ch_list
+                activity_mismatch = abs(activity_moving[ch][roi_moving] - activity_fixed[ch][roi_fixed])
+                match_weight *= exp(-activity_diff_weight * activity_mismatch)
+            end
+            # penalize for relative colors being different
+            moving_mean_act = mean([activity_moving[ch][roi_moving] for ch in 1:4])
+            fixed_mean_act = mean([activity_fixed[ch][roi_fixed] for ch in 1:4])
+
+            activity_moving_all = [activity_moving[ch][roi_moving] for ch in 1:4] ./ moving_mean_act
+            activity_fixed_all = [activity_fixed[ch][roi_fixed] for ch in 1:4] ./ fixed_mean_act
+            match_weight *= exp(-activity_diff_weight * abs(moving_mean_act - fixed_mean_act))
+            for ch=1:4
+                activity_mismatch = abs(activity_moving_all[ch] - activity_fixed_all[ch])
+                match_weight *= exp(-color_diff_weight * activity_mismatch)
+            end
+
+            # penalize for bad registration quality between time points
+            match_weight *= (q_dict[(moving, fixed)][best_reg[(moving, fixed)]][metric]) ^ q_weight
+            # penalize for large regularization weight
+            match_weight *= exp(-regularization_weight * regularization_dict[(moving, fixed)][regularization_key])
+            # penalize for individual ROIs moving too much
+            match_weight /= (1.0 + displacement_weight * get(displacement_dict[(moving, fixed)], roi_fixed, 0.0))
+
+            if match_weight < min_weight
+                continue
+            end
+
+            if !(roi_moving in keys(label_map[moving_shifted]))
+                label_map[moving_shifted][roi_moving] = count
+                count += 1
+            end
+            if !(roi_fixed in keys(label_map[fixed]))
+                label_map[fixed][roi_fixed] = count
+                count += 1
+            end
+
+            push!(regmap_matrix[1], label_map[moving_shifted][roi_moving])
+            push!(regmap_matrix[2], label_map[fixed][roi_fixed])
+            push!(regmap_matrix[3], match_weight)
+            push!(regmap_matrix[2], label_map[moving_shifted][roi_moving])
+            push!(regmap_matrix[1], label_map[fixed][roi_fixed])
+            push!(regmap_matrix[3], match_weight)
+        end
+    end
+    for i in 1:maximum(regmap_matrix[1])
+        push!(regmap_matrix[1], i)
+        push!(regmap_matrix[2], i)
+        push!(regmap_matrix[3], self_weight)
+    end
+
+    regmap_matrix = sparse(regmap_matrix[1], regmap_matrix[2], regmap_matrix[3])
+    return (regmap_matrix, label_map)
+end
+
+
+"""
 `make_regmap_matrix`
 
 #### Description:
