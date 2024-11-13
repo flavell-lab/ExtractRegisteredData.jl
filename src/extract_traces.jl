@@ -175,7 +175,8 @@ Extracts activity marker activity from camera-alignment registration. Returns an
  - `transform_key::String` (optional): Key in `param_path` to file name of transform parameter files. Default `path_dir_transformed_activity_marker_avg`.
 """
 function extract_activity_am_reg(param_path::Dict, param::Dict, shear_params_dict::Dict, crop_params_dict::Dict;
-        nrrd_path_key::String="path_dir_nrrd", roi_dir_key::String="path_dir_roi_watershed", transform_key::String="name_transform_activity_marker_avg")
+        nrrd_path_key::String="path_dir_nrrd", roi_dir_key::String="path_dir_roi_watershed", transform_key::String="name_transform_activity_marker_avg",
+	use_cropnet=false)
     errors = Dict()
     create_dir(param_path["path_dir_transformed_activity_marker"])
     get_basename = param_path["get_basename"]
@@ -204,7 +205,11 @@ function extract_activity_am_reg(param_path::Dict, param::Dict, shear_params_dic
     println("Shear-correcting activity channel data...")
     shear_correction_nrrd!(param_path, param, ch_activity, shear_params_dict, nrrd_in_key="path_dir_transformed_activity_marker")
     println("Cropping activity channel data...")
-    crop_errors, out_of_focus_frames = crop_rotate_dset!(param_path, param, t_range, [ch_activity], crop_params_dict)
+    if use_cropnet
+        crop_errors, out_of_focus_frames = crop_rotate_dset!(param_path, param, t_range, [ch_activity], crop_params_dict)
+    else
+        crop_errors, out_of_focus_frames = crop_rotate!(param_path, param, t_range, [ch_activity], crop_params_dict)
+    end
     for t in keys(crop_errors)
         errors[t] = crop_errors[t]
     end
